@@ -1,0 +1,162 @@
+import GaleriaCasa from "@/components/GaleriaCasa";
+import { supabase } from "@/lib/supabase";
+
+export default async function CasaPage({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}) {
+  const { slug } = await params;
+
+  if (!slug) {
+    return (
+      <div className="mx-auto max-w-6xl px-4 py-20 text-center text-stone-500">
+        Slug inválido.
+      </div>
+    );
+  }
+
+  const { data: casa, error } = await supabase
+    .from("casas")
+    .select("*")
+    .eq("slug", slug)
+    .maybeSingle();
+
+  if (error || !casa) {
+    return (
+      <div className="mx-auto max-w-6xl px-4 py-20 text-center text-stone-500">
+        {error ? "Ocurrió un error al cargar la casa." : "Casa no encontrada."}
+      </div>
+    );
+  }
+
+  const { data: fotos } = await supabase
+    .from("fotos")
+    .select("*")
+    .eq("casa_id", casa.id)
+    .order("orden", { ascending: true });
+
+  const whatsappMessage = encodeURIComponent(
+    `Hola, quiero consultar por la casa ${casa.nombre} en Km314.`
+  );
+
+  const stats = [
+    { label: "Huéspedes", value: casa.capacidad, icon: "👥" },
+    { label: "Dormitorios", value: casa.dormitorios, icon: "🛏" },
+    { label: "Baños", value: casa.banos, icon: "🛁" },
+    { label: "Camas", value: casa.camas, icon: "🛌" },
+  ].filter((s) => s.value != null);
+
+  return (
+    <main className="min-h-screen bg-white text-gray-800">
+      <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+
+        {/* Breadcrumb */}
+        <nav className="mb-6 text-sm text-stone-400">
+          <a href="/casas" className="hover:text-teal-600 transition-colors">Casas</a>
+          <span className="mx-2">›</span>
+          <span className="text-stone-700">{casa.nombre}</span>
+        </nav>
+
+        <div className="grid gap-10 lg:grid-cols-[1.2fr_0.8fr]">
+
+          {/* Gallery */}
+          <div>
+            <GaleriaCasa nombreCasa={casa.nombre} fotos={fotos ?? []} />
+          </div>
+
+          {/* Info */}
+          <div>
+            <h1 className="text-3xl font-bold text-stone-900 sm:text-4xl lg:text-5xl">
+              {casa.nombre}
+            </h1>
+
+            {casa.precio_por_noche && (
+              <p className="mt-4 text-2xl font-semibold text-teal-700">
+                ${casa.precio_por_noche.toLocaleString("es-AR")}
+                <span className="text-base font-normal text-stone-500"> / noche</span>
+              </p>
+            )}
+
+            <p className="mt-5 text-base leading-8 text-stone-600">
+              {casa.descripcion ?? "Sin descripción disponible."}
+            </p>
+
+            {/* Stats */}
+            {stats.length > 0 && (
+              <div className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-2 xl:grid-cols-4">
+                {stats.map(({ label, value, icon }) => (
+                  <div
+                    key={label}
+                    className="flex flex-col items-center gap-1 rounded-2xl bg-stone-50 border border-stone-100 py-4 px-2 text-center"
+                  >
+                    <span className="text-xl">{icon}</span>
+                    <span className="text-lg font-semibold text-stone-900">{value}</span>
+                    <span className="text-xs text-stone-400">{label}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Location */}
+            {casa.ubicacion && (
+              <p className="mt-5 flex items-center gap-1.5 text-sm text-stone-500">
+                <svg className="h-4 w-4 text-teal-600 shrink-0" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
+                </svg>
+                {casa.ubicacion}
+              </p>
+            )}
+
+            {/* Amenities */}
+            {Array.isArray(casa.amenities) && casa.amenities.length > 0 && (
+              <div className="mt-8">
+                <h2 className="text-base font-semibold text-stone-900">Comodidades</h2>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {casa.amenities.map((item: string) => (
+                    <span
+                      key={item}
+                      className="rounded-full bg-teal-50 border border-teal-100 px-4 py-1.5 text-xs font-medium text-teal-800"
+                    >
+                      {item}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* CTAs */}
+            <div className="mt-10 flex flex-col gap-3 sm:flex-row">
+              <a
+                href={`https://wa.me/5491167330060?text=${whatsappMessage}`}
+                target="_blank"
+                rel="noreferrer"
+                className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-teal-600 px-6 py-3.5 text-sm font-medium text-white shadow-sm transition hover:bg-teal-700"
+              >
+                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z" />
+                  <path d="M12 0C5.373 0 0 5.373 0 12c0 2.124.558 4.118 1.533 5.845L0 24l6.335-1.509A11.954 11.954 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-1.885 0-3.655-.495-5.19-1.361l-.371-.217-3.864.92.979-3.768-.24-.386A9.944 9.944 0 012 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z" />
+                </svg>
+                Consultar por WhatsApp
+              </a>
+
+              {casa.google_maps_url && (
+                <a
+                  href={casa.google_maps_url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex items-center justify-center gap-1.5 rounded-xl border border-stone-200 px-6 py-3.5 text-sm font-medium text-stone-700 transition hover:bg-stone-50"
+                >
+                  <svg className="h-4 w-4 text-stone-500" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
+                  </svg>
+                  Ver en el mapa
+                </a>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  );
+}
