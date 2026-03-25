@@ -1,0 +1,685 @@
+"use client";
+
+import { useEffect, useState, useRef } from "react";
+import { supabase } from "@/lib/supabase";
+
+// ─── Types ───────────────────────────────────────────────
+type Foto = {
+  id: string;
+  casa_id: string;
+  url: string;
+  alt: string | null;
+  es_principal: boolean;
+  orden: number;
+};
+
+type Casa = {
+  id: string;
+  nombre: string;
+  slug: string;
+  descripcion: string | null;
+  capacidad: number | null;
+  dormitorios: number | null;
+  banos: number | null;
+  camas: number | null;
+  ubicacion: string | null;
+  precio_por_noche: number | null;
+  google_maps_url: string | null;
+  activa: boolean;
+  destacada: boolean;
+  orden_home: number;
+  amenities: string[];
+  fotos?: Foto[];
+};
+
+type FormData = Omit<Casa, "id" | "fotos">;
+
+// ─── Helpers ─────────────────────────────────────────────
+function slugify(text: string) {
+  return text
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9\s-]/g, "")
+    .trim()
+    .replace(/\s+/g, "-");
+}
+
+const emptyForm: FormData = {
+  nombre: "",
+  slug: "",
+  descripcion: "",
+  capacidad: null,
+  dormitorios: null,
+  banos: null,
+  camas: null,
+  ubicacion: "",
+  precio_por_noche: null,
+  google_maps_url: "",
+  activa: true,
+  destacada: false,
+  orden_home: 999,
+  amenities: [],
+};
+
+// ─── Sub-components ───────────────────────────────────────
+function Badge({ activa }: { activa: boolean }) {
+  return (
+    <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium ${
+      activa ? "bg-teal-50 text-teal-700 border border-teal-200" : "bg-stone-100 text-stone-500 border border-stone-200"
+    }`}>
+      <span className={`h-1.5 w-1.5 rounded-full ${activa ? "bg-teal-500" : "bg-stone-400"}`} />
+      {activa ? "Activa" : "Inactiva"}
+    </span>
+  );
+}
+
+// ─── Main Component ───────────────────────────────────────
+export default function AdminCasasPage() {
+  const [casas, setCasas] = useState<Casa[]>([]);
+  const [cargando, setCargando] = useState(true);
+  const [editando, setEditando] = useState<Casa | null>(null);
+  const [creando, setCreando] = useState(false);
+  const [form, setForm] = useState<FormData>(emptyForm);
+  const [amenitiesInput, setAmenitiesInput] = useState("");
+  const [guardando, setGuardando] = useState(false);
+  const [mensaje, setMensaje] = useState<{ tipo: "ok" | "error"; texto: string } | null>(null);
+  const [subiendoFoto, setSubiendoFoto] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  // ── Load casas ──
+  const cargarCasas = async () => {
+    setCargando(true);
+    const { data: casasData } = await supabase
+      .from("casas")
+      .select("*")
+      .order("orden_home", { ascending: true });
+
+    const { data: fotosData } = await supabase
+      .from("fotos")
+      .select("*")
+      .order("orden", { ascending: true });
+
+    const result = (casasData ?? []).map((c) => ({
+      ...c,
+      amenities: Array.isArray(c.amenities) ? c.amenities : [],
+      fotos: (fotosData ?? []).filter((f) => f.casa_id === c.id),
+    }));
+
+    setCasas(result);
+    setCargando(false);
+  };
+
+  useEffect(() => { cargarCasas(); }, []);
+
+  // ── Open edit ──
+  const abrirEditar = (casa: Casa) => {
+    setEditando(casa);
+    setCreando(false);
+    setForm({
+      nombre: casa.nombre,
+      slug: casa.slug,
+      descripcion: casa.descripcion ?? "",
+      capacidad: casa.capacidad,
+      dormitorios: casa.dormitorios,
+      banos: casa.banos,
+      camas: casa.camas,
+      ubicacion: casa.ubicacion ?? "",
+      precio_por_noche: casa.precio_por_noche,
+      google_maps_url: casa.google_maps_url ?? "",
+      activa: casa.activa,
+      destacada: casa.destacada,
+      orden_home: casa.orden_home,
+      amenities: casa.amenities,
+    });
+    setAmenitiesInput((casa.amenities ?? []).join(", "));
+    setMensaje(null);
+  };
+
+  // ── Open create ──
+  const abrirCrear = () => {
+    setEditando(null);
+    setCreando(true);
+    setForm(emptyForm);
+    setAmenitiesInput("");
+    setMensaje(null);
+  };
+
+  const cerrar = () => {
+    setEditando(null);
+    setCreando(false);
+    setMensaje(null);
+  };
+
+  // ── Form helpers ──
+  const set = (key: keyof FormData, value: any) => {
+    setForm((prev) => {
+      const next = { ...prev, [key]: value };
+      if (key === "nombre" && creando) {
+        next.slug = slugify(value);
+      }
+      return next;
+    });
+  };
+
+  const parseAmenities = (val: string) =>
+    val.split(",").map((s) => s.trim()).filter(Boolean);
+
+  // ── Save casa ──
+  const guardar = async () => {
+    if (!form.nombre.trim() || !form.slug.trim()) {
+      setMensaje({ tipo: "error", texto: "Nombre y slug son obligatorios." });
+      return;
+    }
+    setGuardando(true);
+    const amenities = parseAmenities(amenitiesInput);
+    const payload = { ...form, amenities };
+
+    if (creando) {
+      const { error } = await supabase.from("casas").insert(payload);
+      if (error) {
+        setMensaje({ tipo: "error", texto: "Error al crear: " + error.message });
+      } else {
+        setMensaje({ tipo: "ok", texto: "Casa creada correctamente." });
+        await cargarCasas();
+        setTimeout(cerrar, 1000);
+      }
+    } else if (editando) {
+      const { error } = await supabase
+        .from("casas")
+        .update(payload)
+        .eq("id", editando.id);
+      if (error) {
+        setMensaje({ tipo: "error", texto: "Error al guardar: " + error.message });
+      } else {
+        setMensaje({ tipo: "ok", texto: "Guardado correctamente." });
+        await cargarCasas();
+        // Refresh editando with updated data
+        const updated = casas.find((c) => c.id === editando.id);
+        if (updated) setEditando({ ...updated, ...payload });
+      }
+    }
+    setGuardando(false);
+  };
+
+  // ── Toggle activa ──
+  const toggleActiva = async (casa: Casa) => {
+    await supabase
+      .from("casas")
+      .update({ activa: !casa.activa })
+      .eq("id", casa.id);
+    await cargarCasas();
+  };
+
+  // ── Upload photo ──
+  const subirFoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!editando || !e.target.files?.[0]) return;
+    const file = e.target.files[0];
+    setSubiendoFoto(true);
+
+    const ext = file.name.split(".").pop();
+    const filename = `${editando.slug}-${Date.now()}.${ext}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from("fotos")
+      .upload(filename, file, { upsert: false });
+
+    if (uploadError) {
+      setMensaje({ tipo: "error", texto: "Error al subir la foto: " + uploadError.message });
+      setSubiendoFoto(false);
+      return;
+    }
+
+    const { data: urlData } = supabase.storage.from("fotos").getPublicUrl(filename);
+    const url = urlData.publicUrl;
+
+    const esPrimera = (editando.fotos?.length ?? 0) === 0;
+    const orden = editando.fotos?.length ?? 0;
+
+    const { error: dbError } = await supabase.from("fotos").insert({
+      casa_id: editando.id,
+      url,
+      es_principal: esPrimera,
+      orden,
+      alt: null,
+    });
+
+    if (dbError) {
+      setMensaje({ tipo: "error", texto: "Error al registrar la foto." });
+    } else {
+      await cargarCasas();
+      // Refresh fotos in editando
+      const { data: fotos } = await supabase
+        .from("fotos")
+        .select("*")
+        .eq("casa_id", editando.id)
+        .order("orden", { ascending: true });
+      setEditando((prev) => prev ? { ...prev, fotos: fotos ?? [] } : prev);
+    }
+
+    setSubiendoFoto(false);
+    if (fileRef.current) fileRef.current.value = "";
+  };
+
+  // ── Delete photo ──
+  const borrarFoto = async (foto: Foto) => {
+    if (!confirm("¿Borrar esta foto?")) return;
+
+    // Extract filename from URL
+    const parts = foto.url.split("/fotos/");
+    const filename = parts[1];
+
+    await supabase.storage.from("fotos").remove([filename]);
+    await supabase.from("fotos").delete().eq("id", foto.id);
+
+    // If was principal, set next as principal
+    if (foto.es_principal && editando) {
+      const remaining = (editando.fotos ?? []).filter((f) => f.id !== foto.id);
+      if (remaining.length > 0) {
+        await supabase.from("fotos").update({ es_principal: true }).eq("id", remaining[0].id);
+      }
+    }
+
+    await cargarCasas();
+    const { data: fotos } = await supabase
+      .from("fotos")
+      .select("*")
+      .eq("casa_id", editando!.id)
+      .order("orden", { ascending: true });
+    setEditando((prev) => prev ? { ...prev, fotos: fotos ?? [] } : prev);
+  };
+
+  // ── Set principal ──
+  const setPrincipal = async (foto: Foto) => {
+    if (!editando) return;
+    // Remove all principals for this casa
+    await supabase
+      .from("fotos")
+      .update({ es_principal: false })
+      .eq("casa_id", editando.id);
+    await supabase
+      .from("fotos")
+      .update({ es_principal: true })
+      .eq("id", foto.id);
+
+    const { data: fotos } = await supabase
+      .from("fotos")
+      .select("*")
+      .eq("casa_id", editando.id)
+      .order("orden", { ascending: true });
+    setEditando((prev) => prev ? { ...prev, fotos: fotos ?? [] } : prev);
+  };
+
+  const panelAbierto = editando !== null || creando;
+
+  // ── Render ──
+  return (
+    <div className="flex min-h-screen bg-stone-50">
+
+      {/* ── LISTA ── */}
+      <div className={`flex flex-col transition-all duration-300 ${panelAbierto ? "w-full lg:w-80 xl:w-96 shrink-0" : "w-full"}`}>
+        <div className="sticky top-0 z-10 border-b border-stone-200 bg-white px-5 py-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-[10px] uppercase tracking-widest text-teal-600 font-medium">Admin</p>
+              <h1 className="text-lg font-bold text-stone-900">Casas</h1>
+            </div>
+            <button
+              onClick={abrirCrear}
+              className="flex items-center gap-1.5 rounded-xl bg-teal-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-teal-700"
+            >
+              <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
+              </svg>
+              Nueva
+            </button>
+          </div>
+        </div>
+
+        {cargando ? (
+          <div className="flex flex-1 items-center justify-center py-20">
+            <div className="h-6 w-6 animate-spin rounded-full border-2 border-teal-500 border-t-transparent" />
+          </div>
+        ) : casas.length === 0 ? (
+          <div className="flex flex-1 flex-col items-center justify-center py-20 text-stone-400">
+            <p className="text-4xl">🏠</p>
+            <p className="mt-3 text-sm">No hay casas cargadas</p>
+            <button onClick={abrirCrear} className="mt-4 text-sm text-teal-600 hover:underline">
+              Crear la primera
+            </button>
+          </div>
+        ) : (
+          <ul className="divide-y divide-stone-100 overflow-y-auto">
+            {casas.map((casa) => {
+              const foto = casa.fotos?.find((f) => f.es_principal) ?? casa.fotos?.[0];
+              const seleccionada = editando?.id === casa.id;
+
+              return (
+                <li
+                  key={casa.id}
+                  className={`flex cursor-pointer items-center gap-3 px-5 py-3.5 transition hover:bg-stone-50 ${
+                    seleccionada ? "bg-teal-50 border-l-2 border-teal-500" : ""
+                  }`}
+                  onClick={() => abrirEditar(casa)}
+                >
+                  {foto?.url ? (
+                    <img src={foto.url} alt={casa.nombre} className="h-14 w-20 rounded-xl object-cover shrink-0" />
+                  ) : (
+                    <div className="flex h-14 w-20 shrink-0 items-center justify-center rounded-xl bg-stone-100 text-stone-400 text-xs">
+                      Sin foto
+                    </div>
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-semibold text-stone-900">{casa.nombre}</p>
+                    <p className="mt-0.5 truncate text-xs text-stone-400">{casa.slug}</p>
+                    <div className="mt-1.5 flex items-center gap-2">
+                      <Badge activa={casa.activa} />
+                      {casa.fotos?.length ? (
+                        <span className="text-xs text-stone-400">{casa.fotos.length} foto{casa.fotos.length !== 1 ? "s" : ""}</span>
+                      ) : null}
+                    </div>
+                  </div>
+                  <svg className="h-4 w-4 shrink-0 text-stone-300" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                  </svg>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </div>
+
+      {/* ── PANEL EDICIÓN ── */}
+      {panelAbierto && (
+        <div className="flex-1 overflow-y-auto border-l border-stone-200 bg-white">
+          <div className="sticky top-0 z-10 flex items-center justify-between border-b border-stone-100 bg-white px-6 py-4">
+            <h2 className="text-base font-semibold text-stone-900">
+              {creando ? "Nueva casa" : `Editando: ${editando?.nombre}`}
+            </h2>
+            <button onClick={cerrar} className="rounded-lg p-1.5 text-stone-400 hover:bg-stone-100 hover:text-stone-600 transition">
+              <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+              </svg>
+            </button>
+          </div>
+
+          <div className="px-6 py-6 space-y-8 max-w-2xl">
+
+            {/* Mensaje */}
+            {mensaje && (
+              <div className={`rounded-xl px-4 py-3 text-sm ${
+                mensaje.tipo === "ok"
+                  ? "bg-teal-50 text-teal-800 border border-teal-200"
+                  : "bg-red-50 text-red-700 border border-red-200"
+              }`}>
+                {mensaje.texto}
+              </div>
+            )}
+
+            {/* ── DATOS BÁSICOS ── */}
+            <section>
+              <h3 className="mb-4 text-sm font-semibold uppercase tracking-widest text-stone-400">Datos básicos</h3>
+              <div className="grid gap-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="col-span-2">
+                    <label className="label">Nombre</label>
+                    <input
+                      className="input"
+                      value={form.nombre}
+                      onChange={(e) => set("nombre", e.target.value)}
+                      placeholder="Casa Los Médanos"
+                    />
+                  </div>
+                  <div className="col-span-2">
+                    <label className="label">Slug (URL)</label>
+                    <input
+                      className="input font-mono text-sm"
+                      value={form.slug}
+                      onChange={(e) => set("slug", slugify(e.target.value))}
+                      placeholder="casa-los-medanos"
+                    />
+                    <p className="mt-1 text-xs text-stone-400">casas314.netlify.app/casas/<strong>{form.slug || "..."}</strong></p>
+                  </div>
+                  <div className="col-span-2">
+                    <label className="label">Descripción</label>
+                    <textarea
+                      className="input min-h-[90px] resize-y"
+                      value={form.descripcion ?? ""}
+                      onChange={(e) => set("descripcion", e.target.value)}
+                      placeholder="Hermosa casa rodeada de naturaleza..."
+                    />
+                  </div>
+                  <div>
+                    <label className="label">Ubicación</label>
+                    <input className="input" value={form.ubicacion ?? ""} onChange={(e) => set("ubicacion", e.target.value)} placeholder="Km 314, Costa Atlántica" />
+                  </div>
+                  <div>
+                    <label className="label">Google Maps URL</label>
+                    <input className="input" value={form.google_maps_url ?? ""} onChange={(e) => set("google_maps_url", e.target.value)} placeholder="https://maps.app.goo.gl/..." />
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            {/* ── CAPACIDAD ── */}
+            <section>
+              <h3 className="mb-4 text-sm font-semibold uppercase tracking-widest text-stone-400">Capacidad</h3>
+              <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+                {([
+                  { key: "capacidad", label: "Huéspedes" },
+                  { key: "dormitorios", label: "Dormitorios" },
+                  { key: "banos", label: "Baños" },
+                  { key: "camas", label: "Camas" },
+                ] as const).map(({ key, label }) => (
+                  <div key={key}>
+                    <label className="label">{label}</label>
+                    <input
+                      type="number"
+                      min={0}
+                      className="input"
+                      value={form[key] ?? ""}
+                      onChange={(e) => set(key, e.target.value ? Number(e.target.value) : null)}
+                    />
+                  </div>
+                ))}
+              </div>
+            </section>
+
+            {/* ── PRECIO ── */}
+            <section>
+              <h3 className="mb-4 text-sm font-semibold uppercase tracking-widest text-stone-400">Precio</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="label">Precio por noche ($)</label>
+                  <input
+                    type="number"
+                    min={0}
+                    className="input"
+                    value={form.precio_por_noche ?? ""}
+                    onChange={(e) => set("precio_por_noche", e.target.value ? Number(e.target.value) : null)}
+                    placeholder="50000"
+                  />
+                </div>
+                <div>
+                  <label className="label">Orden en home</label>
+                  <input
+                    type="number"
+                    min={0}
+                    className="input"
+                    value={form.orden_home}
+                    onChange={(e) => set("orden_home", Number(e.target.value))}
+                  />
+                </div>
+              </div>
+            </section>
+
+            {/* ── AMENITIES ── */}
+            <section>
+              <h3 className="mb-4 text-sm font-semibold uppercase tracking-widest text-stone-400">Comodidades</h3>
+              <label className="label">Separadas por coma</label>
+              <input
+                className="input"
+                value={amenitiesInput}
+                onChange={(e) => setAmenitiesInput(e.target.value)}
+                placeholder="WiFi, Parrilla, Pileta, Aire acondicionado"
+              />
+              {parseAmenities(amenitiesInput).length > 0 && (
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {parseAmenities(amenitiesInput).map((a) => (
+                    <span key={a} className="rounded-full bg-teal-50 border border-teal-100 px-3 py-1 text-xs text-teal-700">{a}</span>
+                  ))}
+                </div>
+              )}
+            </section>
+
+            {/* ── ESTADO ── */}
+            <section>
+              <h3 className="mb-4 text-sm font-semibold uppercase tracking-widest text-stone-400">Estado</h3>
+              <div className="flex flex-wrap gap-4">
+                <label className="flex cursor-pointer items-center gap-2.5">
+                  <input
+                    type="checkbox"
+                    className="h-4 w-4 rounded border-stone-300 text-teal-600 focus:ring-teal-500"
+                    checked={form.activa}
+                    onChange={(e) => set("activa", e.target.checked)}
+                  />
+                  <span className="text-sm text-stone-700">Casa activa (visible en el sitio)</span>
+                </label>
+                <label className="flex cursor-pointer items-center gap-2.5">
+                  <input
+                    type="checkbox"
+                    className="h-4 w-4 rounded border-stone-300 text-teal-600 focus:ring-teal-500"
+                    checked={form.destacada}
+                    onChange={(e) => set("destacada", e.target.checked)}
+                  />
+                  <span className="text-sm text-stone-700">Destacada</span>
+                </label>
+              </div>
+            </section>
+
+            {/* ── GUARDAR ── */}
+            <div className="flex gap-3 pt-2">
+              <button
+                onClick={guardar}
+                disabled={guardando}
+                className="flex items-center gap-2 rounded-xl bg-teal-600 px-6 py-2.5 text-sm font-medium text-white transition hover:bg-teal-700 disabled:opacity-60"
+              >
+                {guardando ? (
+                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                ) : (
+                  <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                  </svg>
+                )}
+                {guardando ? "Guardando..." : "Guardar"}
+              </button>
+
+              {editando && (
+                <button
+                  onClick={() => toggleActiva(editando)}
+                  className={`rounded-xl border px-5 py-2.5 text-sm font-medium transition ${
+                    editando.activa
+                      ? "border-stone-200 text-stone-600 hover:bg-stone-50"
+                      : "border-teal-200 text-teal-700 hover:bg-teal-50"
+                  }`}
+                >
+                  {editando.activa ? "Desactivar" : "Activar"}
+                </button>
+              )}
+            </div>
+
+            {/* ── FOTOS ── */}
+            {editando && (
+              <section className="border-t border-stone-100 pt-8">
+                <div className="mb-4 flex items-center justify-between">
+                  <h3 className="text-sm font-semibold uppercase tracking-widest text-stone-400">Fotos</h3>
+                  <button
+                    onClick={() => fileRef.current?.click()}
+                    disabled={subiendoFoto}
+                    className="flex items-center gap-1.5 rounded-xl bg-stone-900 px-4 py-2 text-xs font-medium text-white transition hover:bg-stone-700 disabled:opacity-60"
+                  >
+                    {subiendoFoto ? (
+                      <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                    ) : (
+                      <svg className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 6.707a1 1 0 010-1.414l3-3a1 1 0 011.414 0l3 3a1 1 0 01-1.414 1.414L11 5.414V13a1 1 0 11-2 0V5.414L7.707 6.707a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                      </svg>
+                    )}
+                    {subiendoFoto ? "Subiendo..." : "Subir foto"}
+                  </button>
+                  <input
+                    ref={fileRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={subirFoto}
+                  />
+                </div>
+
+                {!editando.fotos?.length ? (
+                  <div
+                    className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-stone-200 py-10 text-stone-400 cursor-pointer hover:border-teal-300 hover:text-teal-600 transition"
+                    onClick={() => fileRef.current?.click()}
+                  >
+                    <svg className="h-8 w-8 mb-2" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" />
+                    </svg>
+                    <p className="text-sm">Hacé click para subir la primera foto</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                    {editando.fotos.map((foto) => (
+                      <div key={foto.id} className="group relative overflow-hidden rounded-xl">
+                        <img
+                          src={foto.url}
+                          alt={foto.alt ?? ""}
+                          className="h-32 w-full object-cover"
+                        />
+                        {/* Principal badge */}
+                        {foto.es_principal && (
+                          <div className="absolute top-2 left-2 rounded-full bg-teal-600 px-2 py-0.5 text-[10px] font-medium text-white shadow">
+                            Principal
+                          </div>
+                        )}
+                        {/* Actions overlay */}
+                        <div className="absolute inset-0 flex items-center justify-center gap-2 bg-black/50 opacity-0 transition group-hover:opacity-100">
+                          {!foto.es_principal && (
+                            <button
+                              onClick={() => setPrincipal(foto)}
+                              className="rounded-lg bg-teal-600 px-2.5 py-1.5 text-[11px] font-medium text-white transition hover:bg-teal-500"
+                              title="Marcar como principal"
+                            >
+                              Principal
+                            </button>
+                          )}
+                          <button
+                            onClick={() => borrarFoto(foto)}
+                            className="rounded-lg bg-red-600 px-2.5 py-1.5 text-[11px] font-medium text-white transition hover:bg-red-500"
+                            title="Borrar foto"
+                          >
+                            Borrar
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <p className="mt-3 text-xs text-stone-400">
+                  Hover sobre una foto para ver las opciones. La foto principal es la que aparece en las cards y como imagen destacada.
+                </p>
+              </section>
+            )}
+
+          </div>
+        </div>
+      )}
+
+      {/* Styles via style tag */}
+      <style>{`
+        .label { display: block; margin-bottom: 4px; font-size: 12px; font-weight: 500; color: #78716c; }
+        .input { width: 100%; border: 1px solid #e7e5e4; border-radius: 10px; padding: 8px 12px; font-size: 14px; color: #1c1917; background: #fff; outline: none; transition: border-color 0.15s; }
+        .input:focus { border-color: #0d9488; box-shadow: 0 0 0 3px rgba(13,148,136,0.1); }
+      `}</style>
+    </div>
+  );
+}

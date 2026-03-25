@@ -1,4 +1,5 @@
 import GaleriaCasa from "@/components/GaleriaCasa";
+import CalendarioDisponibilidad from "@/components/CalendarioDisponibilidad";
 import { supabase } from "@/lib/supabase";
 
 export default async function CasaPage({
@@ -124,6 +125,13 @@ export default async function CasaPage({
                 </div>
               </div>
             )}
+
+
+            {/* Calendario de disponibilidad */}
+            <div className="mt-10">
+              <h2 className="mb-4 text-base font-semibold text-stone-900">Disponibilidad</h2>
+              <CalendarioDisponibilidad casaId={casa.id} />
+            </div>
 
             {/* CTAs */}
             <div className="mt-10 flex flex-col gap-3 sm:flex-row">

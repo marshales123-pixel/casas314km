@@ -22,7 +22,7 @@ export const homeImages = {
   ],
 };
 
-const amenities = [
+const amenitiesList = [
   { label: "Seguridad 24 hs", icon: "🛡️" },
   { label: "Club House", icon: "🏡" },
   { label: "Pileta", icon: "🏊" },
@@ -60,22 +60,18 @@ export default async function Home() {
           alt="Km314"
           className="absolute inset-0 h-full w-full object-cover"
         />
-        {/* Gradient overlay — stronger at bottom for legibility */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />
 
         <div className="relative z-10 mx-auto w-full max-w-6xl px-4 pb-16 sm:px-6 lg:px-8">
           <p className="text-xs uppercase tracking-[0.3em] text-teal-400 font-medium">
             Barrio Privado · Costa Atlántica
           </p>
-
           <h1 className="mt-3 max-w-3xl text-4xl font-bold leading-tight text-white sm:text-5xl lg:text-6xl">
             Casas de mar dentro del barrio
           </h1>
-
           <p className="mt-5 max-w-xl text-base text-white/80 sm:text-lg">
             Viví el mar, la naturaleza y la tranquilidad en un entorno privado pensado para descansar.
           </p>
-
           <div className="mt-8 flex flex-wrap gap-3">
             <Link
               href="/casas"
@@ -94,12 +90,10 @@ export default async function Home() {
       </section>
 
       {/* ── INTRO + AMENITIES ── */}
-      <section className="mx-auto max-w-6xl px-4 py-20 sm:px-6 lg:px-8">
-        <div className="grid gap-12 lg:grid-cols-2 lg:items-start">
+      <section className="mx-auto max-w-6xl px-4 py-16 sm:py-20 sm:px-6 lg:px-8">
+        <div className="grid gap-10 lg:grid-cols-2 lg:items-start">
           <div>
-            <p className="text-xs uppercase tracking-[0.25em] text-teal-600 font-medium">
-              Viví Km 314
-            </p>
+            <p className="text-xs uppercase tracking-[0.25em] text-teal-600 font-medium">Viví Km 314</p>
             <h2 className="mt-3 text-3xl font-bold text-stone-900 sm:text-4xl">
               Naturaleza, tranquilidad y mar
             </h2>
@@ -110,7 +104,7 @@ export default async function Home() {
           </div>
 
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-            {amenities.map(({ label, icon }) => (
+            {amenitiesList.map(({ label, icon }) => (
               <div
                 key={label}
                 className="flex flex-col gap-2 rounded-2xl bg-stone-50 border border-stone-100 p-4 transition hover:border-teal-100 hover:bg-teal-50/40"
@@ -124,25 +118,43 @@ export default async function Home() {
       </section>
 
       {/* ── BARRIO FOTOS ── */}
-      <section className="mx-auto max-w-6xl px-4 pb-20 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <section className="mx-auto max-w-6xl px-4 pb-16 sm:pb-20 sm:px-6 lg:px-8">
+        {/* Mobile: foto grande arriba + carrusel horizontal debajo */}
+        <div className="sm:hidden">
+          <img
+            src={homeImages.barrio[0]}
+            alt="Barrio Km314"
+            className="h-60 w-full rounded-2xl object-cover"
+          />
+          <div className="mt-3 flex gap-3 overflow-x-auto pb-2">
+            {homeImages.barrio.slice(1).map((img, i) => (
+              <img
+                key={i}
+                src={img}
+                alt={`Barrio Km314 ${i + 2}`}
+                className="h-32 w-44 shrink-0 rounded-xl object-cover"
+              />
+            ))}
+          </div>
+        </div>
+
+        {/* sm+: grilla 2 cols / lg: 4 cols */}
+        <div className="hidden sm:grid sm:grid-cols-2 sm:gap-3 lg:grid-cols-4">
           {homeImages.barrio.map((img, i) => (
             <img
               key={i}
               src={img}
               alt={`Barrio Km314 ${i + 1}`}
-              className={`w-full rounded-2xl object-cover transition duration-300 hover:scale-[1.02] hover:shadow-md ${
-                i === 0 ? "h-64 lg:h-56" : "h-48 lg:h-56"
-              }`}
+              className="h-52 w-full rounded-2xl object-cover transition duration-300 hover:scale-[1.02] hover:shadow-md lg:h-56"
             />
           ))}
         </div>
       </section>
 
       {/* ── PLAYA ── */}
-      <section className="bg-stone-50 py-20">
+      <section className="bg-stone-50 py-16 sm:py-20">
         <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
-          <div className="grid gap-10 lg:grid-cols-2 lg:items-center">
+          <div className="grid gap-8 lg:grid-cols-2 lg:items-center">
             <div>
               <p className="text-xs uppercase tracking-[0.25em] text-teal-600 font-medium">Playa</p>
               <h2 className="mt-3 text-3xl font-bold text-stone-900 sm:text-4xl">
@@ -154,7 +166,24 @@ export default async function Home() {
               </p>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            {/* Mobile: foto completa + segunda en scroll */}
+            <div className="sm:hidden">
+              <img
+                src={homeImages.playa[0]}
+                alt="Playa Km314"
+                className="h-56 w-full rounded-2xl object-cover"
+              />
+              {homeImages.playa[1] && (
+                <img
+                  src={homeImages.playa[1]}
+                  alt="Playa Km314 2"
+                  className="mt-3 h-40 w-full rounded-2xl object-cover"
+                />
+              )}
+            </div>
+
+            {/* sm+: grid 2 cols */}
+            <div className="hidden sm:grid sm:grid-cols-2 sm:gap-3">
               {homeImages.playa.map((img, i) => (
                 <img
                   key={i}
@@ -169,13 +198,38 @@ export default async function Home() {
       </section>
 
       {/* ── AMENITIES FOTOS ── */}
-      <section className="mx-auto max-w-6xl px-4 py-20 sm:px-6 lg:px-8">
+      <section className="mx-auto max-w-6xl px-4 py-16 sm:py-20 sm:px-6 lg:px-8">
         <p className="text-xs uppercase tracking-[0.25em] text-teal-600 font-medium">Amenities</p>
         <h2 className="mt-3 text-3xl font-bold text-stone-900 sm:text-4xl">
           Espacios para disfrutar todo el año
         </h2>
 
-        <div className="mt-8 grid grid-cols-2 gap-3 lg:grid-cols-4">
+        {/* Mobile: 2 fotos apiladas + scroll horizontal para las otras */}
+        <div className="mt-6 sm:hidden">
+          <div className="grid grid-cols-2 gap-3">
+            {homeImages.amenities.slice(0, 2).map((img, i) => (
+              <img
+                key={i}
+                src={img}
+                alt={`Amenity Km314 ${i + 1}`}
+                className="h-36 w-full rounded-2xl object-cover"
+              />
+            ))}
+          </div>
+          <div className="mt-3 flex gap-3 overflow-x-auto pb-2">
+            {homeImages.amenities.slice(2).map((img, i) => (
+              <img
+                key={i}
+                src={img}
+                alt={`Amenity Km314 ${i + 3}`}
+                className="h-28 w-40 shrink-0 rounded-xl object-cover"
+              />
+            ))}
+          </div>
+        </div>
+
+        {/* sm+: grid 2 cols / lg: 4 cols */}
+        <div className="mt-8 hidden sm:grid sm:grid-cols-2 sm:gap-3 lg:grid-cols-4">
           {homeImages.amenities.map((img, i) => (
             <img
               key={i}
@@ -188,9 +242,9 @@ export default async function Home() {
       </section>
 
       {/* ── CASAS DESTACADAS ── */}
-      <section className="bg-stone-50 py-20">
+      <section className="bg-stone-50 py-16 sm:py-20">
         <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
-          <div className="mb-10 flex items-end justify-between">
+          <div className="mb-8 sm:mb-10 flex items-end justify-between">
             <div>
               <p className="text-xs uppercase tracking-[0.25em] text-teal-600 font-medium">
                 Casas destacadas
@@ -232,7 +286,7 @@ export default async function Home() {
       </section>
 
       {/* ── VALORES ── */}
-      <section className="mx-auto max-w-6xl px-4 py-20 sm:px-6 lg:px-8">
+      <section className="mx-auto max-w-6xl px-4 py-16 sm:py-20 sm:px-6 lg:px-8">
         <div className="grid gap-8 md:grid-cols-3">
           {valores.map(({ titulo, descripcion }) => (
             <div key={titulo} className="border-t-2 border-teal-500 pt-5">
@@ -244,7 +298,7 @@ export default async function Home() {
       </section>
 
       {/* ── CTA PROPIETARIOS ── */}
-      <section className="bg-stone-900 py-20">
+      <section className="bg-stone-900 py-16 sm:py-20">
         <div className="mx-auto max-w-6xl px-4 text-center sm:px-6 lg:px-8">
           <p className="text-xs uppercase tracking-[0.25em] text-teal-400 font-medium">Propietarios</p>
           <h2 className="mt-3 text-3xl font-bold text-white sm:text-4xl">
