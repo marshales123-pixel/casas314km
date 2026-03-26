@@ -2,6 +2,21 @@ import GaleriaCasa from "@/components/GaleriaCasa";
 import CalendarioDisponibilidad from "@/components/CalendarioDisponibilidad";
 import { supabase } from "@/lib/supabase";
 
+export const dynamic = "force-dynamic";
+
+function formatPrecio(
+  precio: number | null,
+  moneda: string | null | undefined
+) {
+  if (precio == null) return null;
+
+  if (moneda === "USD") {
+    return `USD ${precio.toLocaleString("en-US")}`;
+  }
+
+  return `$${precio.toLocaleString("es-AR")}`;
+}
+
 export default async function CasaPage({
   params,
 }: {
@@ -48,34 +63,45 @@ export default async function CasaPage({
     { label: "Camas", value: casa.camas, icon: "🛌" },
   ].filter((s) => s.value != null);
 
+  const precioFormateado = formatPrecio(
+    casa.precio_por_noche,
+    casa.moneda_precio
+  );
+
+  const tieneCondiciones =
+    casa.descuento_texto ||
+    casa.descuento_valor != null ||
+    casa.min_noches_baja != null ||
+    casa.min_noches_alta != null;
+
   return (
     <main className="min-h-screen bg-white text-gray-800">
       <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
-
-        {/* Breadcrumb */}
         <nav className="mb-6 text-sm text-stone-400">
-          <a href="/casas" className="hover:text-teal-600 transition-colors">Casas</a>
+          <a href="/casas" className="transition-colors hover:text-teal-600">
+            Casas
+          </a>
           <span className="mx-2">›</span>
           <span className="text-stone-700">{casa.nombre}</span>
         </nav>
 
         <div className="grid gap-10 lg:grid-cols-[1.2fr_0.8fr]">
-
-          {/* Gallery */}
           <div>
             <GaleriaCasa nombreCasa={casa.nombre} fotos={fotos ?? []} />
           </div>
 
-          {/* Info */}
           <div>
             <h1 className="text-3xl font-bold text-stone-900 sm:text-4xl lg:text-5xl">
               {casa.nombre}
             </h1>
 
-            {casa.precio_por_noche && (
+            {precioFormateado && (
               <p className="mt-4 text-2xl font-semibold text-teal-700">
-                ${casa.precio_por_noche.toLocaleString("es-AR")}
-                <span className="text-base font-normal text-stone-500"> / noche</span>
+                {precioFormateado}
+                <span className="text-base font-normal text-stone-500">
+                  {" "}
+                  / noche
+                </span>
               </p>
             )}
 
@@ -83,41 +109,100 @@ export default async function CasaPage({
               {casa.descripcion ?? "Sin descripción disponible."}
             </p>
 
-            {/* Stats */}
             {stats.length > 0 && (
               <div className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-2 xl:grid-cols-4">
                 {stats.map(({ label, value, icon }) => (
                   <div
                     key={label}
-                    className="flex flex-col items-center gap-1 rounded-2xl bg-stone-50 border border-stone-100 py-4 px-2 text-center"
+                    className="flex flex-col items-center gap-1 rounded-2xl border border-stone-100 bg-stone-50 px-2 py-4 text-center"
                   >
                     <span className="text-xl">{icon}</span>
-                    <span className="text-lg font-semibold text-stone-900">{value}</span>
+                    <span className="text-lg font-semibold text-stone-900">
+                      {value}
+                    </span>
                     <span className="text-xs text-stone-400">{label}</span>
                   </div>
                 ))}
               </div>
             )}
 
-            {/* Location */}
             {casa.ubicacion && (
               <p className="mt-5 flex items-center gap-1.5 text-sm text-stone-500">
-                <svg className="h-4 w-4 text-teal-600 shrink-0" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
+                <svg
+                  className="h-4 w-4 shrink-0 text-teal-600"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z"
+                    clipRule="evenodd"
+                  />
                 </svg>
                 {casa.ubicacion}
               </p>
             )}
 
-            {/* Amenities */}
+            {tieneCondiciones && (
+              <div className="mt-8 rounded-2xl border border-stone-200 bg-stone-50 p-5">
+                <h2 className="text-base font-semibold text-stone-900">
+                  Tarifas y condiciones
+                </h2>
+
+                <div className="mt-4 grid gap-3 text-sm text-stone-600">
+                  {casa.descuento_texto && (
+                    <div className="flex items-start gap-2">
+                      <span className="mt-0.5">🏷️</span>
+                      <span>{casa.descuento_texto}</span>
+                    </div>
+                  )}
+
+                  {!casa.descuento_texto && casa.descuento_valor != null && (
+                    <div className="flex items-start gap-2">
+                      <span className="mt-0.5">🏷️</span>
+                      <span>Descuento del {casa.descuento_valor}%</span>
+                    </div>
+                  )}
+
+                  {casa.min_noches_baja != null && (
+                    <div className="flex items-start gap-2">
+                      <span className="mt-0.5">🌿</span>
+                      <span>
+                        Mínimo fuera de temporada:{" "}
+                        <strong>
+                          {casa.min_noches_baja}{" "}
+                          {casa.min_noches_baja === 1 ? "noche" : "noches"}
+                        </strong>
+                      </span>
+                    </div>
+                  )}
+
+                  {casa.min_noches_alta != null && (
+                    <div className="flex items-start gap-2">
+                      <span className="mt-0.5">☀️</span>
+                      <span>
+                        Mínimo en temporada:{" "}
+                        <strong>
+                          {casa.min_noches_alta}{" "}
+                          {casa.min_noches_alta === 1 ? "noche" : "noches"}
+                        </strong>
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
             {Array.isArray(casa.amenities) && casa.amenities.length > 0 && (
               <div className="mt-8">
-                <h2 className="text-base font-semibold text-stone-900">Comodidades</h2>
+                <h2 className="text-base font-semibold text-stone-900">
+                  Comodidades
+                </h2>
                 <div className="mt-3 flex flex-wrap gap-2">
                   {casa.amenities.map((item: string) => (
                     <span
                       key={item}
-                      className="rounded-full bg-teal-50 border border-teal-100 px-4 py-1.5 text-xs font-medium text-teal-800"
+                      className="rounded-full border border-teal-100 bg-teal-50 px-4 py-1.5 text-xs font-medium text-teal-800"
                     >
                       {item}
                     </span>
@@ -126,14 +211,13 @@ export default async function CasaPage({
               </div>
             )}
 
-
-            {/* Calendario de disponibilidad */}
             <div className="mt-10">
-              <h2 className="mb-4 text-base font-semibold text-stone-900">Disponibilidad</h2>
+              <h2 className="mb-4 text-base font-semibold text-stone-900">
+                Disponibilidad
+              </h2>
               <CalendarioDisponibilidad casaId={casa.id} />
             </div>
 
-            {/* CTAs */}
             <div className="mt-10 flex flex-col gap-3 sm:flex-row">
               <a
                 href={`https://wa.me/5491167330060?text=${whatsappMessage}`}
@@ -155,8 +239,16 @@ export default async function CasaPage({
                   rel="noreferrer"
                   className="flex items-center justify-center gap-1.5 rounded-xl border border-stone-200 px-6 py-3.5 text-sm font-medium text-stone-700 transition hover:bg-stone-50"
                 >
-                  <svg className="h-4 w-4 text-stone-500" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
+                  <svg
+                    className="h-4 w-4 text-stone-500"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z"
+                      clipRule="evenodd"
+                    />
                   </svg>
                   Ver en el mapa
                 </a>
