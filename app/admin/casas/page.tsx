@@ -102,6 +102,7 @@ export default function AdminCasasPage() {
     texto: string;
   } | null>(null);
   const [subiendoFoto, setSubiendoFoto] = useState(false);
+  const [dragActive, setDragActive] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const cargarCasas = async () => {
@@ -377,63 +378,83 @@ export default function AdminCasasPage() {
     }
   };
 
-  const subirFoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!editando || !e.target.files?.[0]) return;
+  const subirArchivos = async (files: FileList | File[]) => {
+    if (!editando || !files.length) return;
 
-    const file = e.target.files[0];
     setSubiendoFoto(true);
     setMensaje(null);
 
-    const ext = file.name.split(".").pop();
-    const filename = `${editando.slug}-${Date.now()}.${ext}`;
+    try {
+      let fotosActuales = [...(editando.fotos ?? [])].sort(
+        (a, b) => a.orden - b.orden
+      );
 
-    const { error: uploadError } = await supabase.storage
-      .from("fotos")
-      .upload(filename, file, { upsert: false });
+      for (const file of Array.from(files)) {
+        const ext = file.name.split(".").pop();
+        const filename = `${editando.slug}-${Date.now()}-${Math.random()
+          .toString(36)
+          .substring(2, 8)}.${ext}`;
 
-    if (uploadError) {
-      setMensaje({
-        tipo: "error",
-        texto: "Error al subir la foto: " + uploadError.message,
-      });
-      setSubiendoFoto(false);
-      return;
-    }
+        const { error: uploadError } = await supabase.storage
+          .from("fotos")
+          .upload(filename, file, { upsert: false });
 
-    const { data: urlData } = supabase.storage.from("fotos").getPublicUrl(filename);
-    const url = urlData.publicUrl;
+        if (uploadError) throw uploadError;
 
-    const fotosActuales = [...(editando.fotos ?? [])].sort(
-      (a, b) => a.orden - b.orden
-    );
+        const { data: urlData } = supabase.storage
+          .from("fotos")
+          .getPublicUrl(filename);
 
-    const esPrimera = fotosActuales.length === 0;
-    const ultimoOrden =
-      fotosActuales.length > 0
-        ? Math.max(...fotosActuales.map((f) => Number(f.orden ?? 0)))
-        : -1;
+        const url = urlData.publicUrl;
 
-    const { error: dbError } = await supabase.from("fotos").insert({
-      casa_id: editando.id,
-      url,
-      es_principal: esPrimera,
-      orden: ultimoOrden + 1,
-      alt: null,
-    });
+        const ultimoOrden =
+          fotosActuales.length > 0
+            ? Math.max(...fotosActuales.map((f) => Number(f.orden ?? 0)))
+            : -1;
 
-    if (dbError) {
-      setMensaje({
-        tipo: "error",
-        texto: "Error al registrar la foto: " + dbError.message,
-      });
-    } else {
-      setMensaje({ tipo: "ok", texto: "Foto subida correctamente." });
+        const esPrimera = fotosActuales.length === 0;
+
+        const { error: dbError } = await supabase.from("fotos").insert({
+          casa_id: editando.id,
+          url,
+          es_principal: esPrimera,
+          orden: ultimoOrden + 1,
+          alt: null,
+        });
+
+        if (dbError) throw dbError;
+
+        fotosActuales = [
+          ...fotosActuales,
+          {
+            id: crypto.randomUUID(),
+            casa_id: editando.id,
+            url,
+            alt: null,
+            es_principal: esPrimera,
+            orden: ultimoOrden + 1,
+          },
+        ];
+      }
+
+      setMensaje({ tipo: "ok", texto: "Fotos subidas correctamente." });
       await cargarCasas();
       await recargarFotosDeCasa(editando.id);
+    } catch (err: any) {
+      setMensaje({
+        tipo: "error",
+        texto: "Error al subir fotos: " + err.message,
+      });
     }
 
     setSubiendoFoto(false);
+    setDragActive(false);
     if (fileRef.current) fileRef.current.value = "";
+  };
+
+  const subirFoto = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files) return;
+    subirArchivos(e.target.files);
   };
 
   const borrarFoto = async (foto: Foto) => {
@@ -1038,6 +1059,7 @@ export default function AdminCasasPage() {
                     ref={fileRef}
                     type="file"
                     accept="image/*"
+                    multiple
                     className="hidden"
                     onChange={subirFoto}
                   />
@@ -1045,8 +1067,27 @@ export default function AdminCasasPage() {
 
                 {!editando.fotos?.length ? (
                   <div
-                    className="flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-stone-200 py-10 text-stone-400 transition hover:border-teal-300 hover:text-teal-600"
+                    onDragOver={(e) => {
+                      e.preventDefault();
+                      setDragActive(true);
+                    }}
+                    onDragLeave={(e) => {
+                      e.preventDefault();
+                      setDragActive(false);
+                    }}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      setDragActive(false);
+                      if (e.dataTransfer.files?.length) {
+                        subirArchivos(e.dataTransfer.files);
+                      }
+                    }}
                     onClick={() => fileRef.current?.click()}
+                    className={`flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed py-10 transition ${
+                      dragActive
+                        ? "border-teal-500 bg-teal-50 text-teal-700"
+                        : "border-stone-200 text-stone-400 hover:border-teal-300 hover:text-teal-600"
+                    }`}
                   >
                     <svg className="mb-2 h-8 w-8" viewBox="0 0 20 20" fill="currentColor">
                       <path
@@ -1055,77 +1096,109 @@ export default function AdminCasasPage() {
                         clipRule="evenodd"
                       />
                     </svg>
-                    <p className="text-sm">Hacé click para subir la primera foto</p>
+                    <p className="text-sm font-medium">
+                      Arrastrá fotos acá o hacé click
+                    </p>
+                    <p className="mt-1 text-xs">
+                      Podés subir varias imágenes juntas
+                    </p>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                    {editando.fotos
-                      .slice()
-                      .sort((a, b) => a.orden - b.orden)
-                      .map((foto, index, arr) => (
-                        <div
-                          key={foto.id}
-                          className="group relative overflow-hidden rounded-xl"
-                        >
-                          <img
-                            src={foto.url}
-                            alt={foto.alt ?? ""}
-                            className="h-32 w-full object-cover"
-                          />
+                  <>
+                    <div
+                      onDragOver={(e) => {
+                        e.preventDefault();
+                        setDragActive(true);
+                      }}
+                      onDragLeave={(e) => {
+                        e.preventDefault();
+                        setDragActive(false);
+                      }}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        setDragActive(false);
+                        if (e.dataTransfer.files?.length) {
+                          subirArchivos(e.dataTransfer.files);
+                        }
+                      }}
+                      className={`mb-4 rounded-2xl border-2 border-dashed p-4 text-center text-sm transition ${
+                        dragActive
+                          ? "border-teal-500 bg-teal-50 text-teal-700"
+                          : "border-stone-200 text-stone-400"
+                      }`}
+                    >
+                      Arrastrá más fotos acá para agregarlas
+                    </div>
 
-                          {foto.es_principal && (
-                            <div className="absolute left-2 top-2 rounded-full bg-teal-600 px-2 py-0.5 text-[10px] font-medium text-white shadow">
-                              Principal
-                            </div>
-                          )}
+                    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                      {editando.fotos
+                        .slice()
+                        .sort((a, b) => a.orden - b.orden)
+                        .map((foto, index, arr) => (
+                          <div
+                            key={foto.id}
+                            className="group relative overflow-hidden rounded-xl"
+                          >
+                            <img
+                              src={foto.url}
+                              alt={foto.alt ?? ""}
+                              className="h-32 w-full object-cover"
+                            />
 
-                          <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black/50 opacity-0 transition group-hover:opacity-100">
-                            <div className="flex gap-2">
-                              <button
-                                onClick={() => moverFoto(foto, "izq")}
-                                disabled={index === 0}
-                                className="rounded bg-white/90 px-2 py-1 text-xs disabled:cursor-not-allowed disabled:opacity-40"
-                                title="Mover izquierda"
-                              >
-                                ←
-                              </button>
-
-                              <button
-                                onClick={() => moverFoto(foto, "der")}
-                                disabled={index === arr.length - 1}
-                                className="rounded bg-white/90 px-2 py-1 text-xs disabled:cursor-not-allowed disabled:opacity-40"
-                                title="Mover derecha"
-                              >
-                                →
-                              </button>
-                            </div>
-
-                            {!foto.es_principal && (
-                              <button
-                                onClick={() => setPrincipal(foto)}
-                                className="rounded-lg bg-teal-600 px-2.5 py-1.5 text-[11px] font-medium text-white transition hover:bg-teal-500"
-                                title="Marcar como principal"
-                              >
+                            {foto.es_principal && (
+                              <div className="absolute left-2 top-2 rounded-full bg-teal-600 px-2 py-0.5 text-[10px] font-medium text-white shadow">
                                 Principal
-                              </button>
+                              </div>
                             )}
 
-                            <button
-                              onClick={() => borrarFoto(foto)}
-                              className="rounded-lg bg-red-600 px-2.5 py-1.5 text-[11px] font-medium text-white transition hover:bg-red-500"
-                              title="Borrar foto"
-                            >
-                              Borrar
-                            </button>
+                            <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black/50 opacity-0 transition group-hover:opacity-100">
+                              <div className="flex gap-2">
+                                <button
+                                  onClick={() => moverFoto(foto, "izq")}
+                                  disabled={index === 0}
+                                  className="rounded bg-white/90 px-2 py-1 text-xs disabled:cursor-not-allowed disabled:opacity-40"
+                                  title="Mover izquierda"
+                                >
+                                  ←
+                                </button>
+
+                                <button
+                                  onClick={() => moverFoto(foto, "der")}
+                                  disabled={index === arr.length - 1}
+                                  className="rounded bg-white/90 px-2 py-1 text-xs disabled:cursor-not-allowed disabled:opacity-40"
+                                  title="Mover derecha"
+                                >
+                                  →
+                                </button>
+                              </div>
+
+                              {!foto.es_principal && (
+                                <button
+                                  onClick={() => setPrincipal(foto)}
+                                  className="rounded-lg bg-teal-600 px-2.5 py-1.5 text-[11px] font-medium text-white transition hover:bg-teal-500"
+                                  title="Marcar como principal"
+                                >
+                                  Principal
+                                </button>
+                              )}
+
+                              <button
+                                onClick={() => borrarFoto(foto)}
+                                className="rounded-lg bg-red-600 px-2.5 py-1.5 text-[11px] font-medium text-white transition hover:bg-red-500"
+                                title="Borrar foto"
+                              >
+                                Borrar
+                              </button>
+                            </div>
                           </div>
-                        </div>
-                      ))}
-                  </div>
+                        ))}
+                    </div>
+                  </>
                 )}
 
                 <p className="mt-3 text-xs text-stone-400">
-                  Hover sobre una foto para ver las opciones. La foto principal es la
-                  que aparece en las cards y como imagen destacada.
+                  Podés arrastrar varias fotos o hacer click para subirlas. La foto
+                  principal es la que aparece en las cards y como imagen destacada.
                 </p>
               </section>
             )}
@@ -1161,4 +1234,4 @@ export default function AdminCasasPage() {
       `}</style>
     </div>
   );
-}
+} 
