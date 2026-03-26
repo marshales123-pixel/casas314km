@@ -17,6 +17,7 @@ type Casa = {
   capacidad?: number | null;
   ubicacion?: string | null;
   precio_por_noche?: number | null;
+  moneda_precio?: string | null;
   dormitorios?: number | null;
   banos?: number | null;
   camas?: number | null;
@@ -24,14 +25,28 @@ type Casa = {
   fotos?: Foto[];
 };
 
+function formatPrecio(precio?: number | null, moneda?: string | null) {
+  if (precio == null) return null;
+
+  if (moneda === "USD") {
+    return `USD ${precio.toLocaleString("en-US")}`;
+  }
+
+  return `$${precio.toLocaleString("es-AR")}`;
+}
+
 export default function CasaCard({ casa }: { casa: Casa }) {
   const fotoPrincipal =
     casa.fotos?.find((f) => f.es_principal) ?? casa.fotos?.[0];
 
+  const precioFormateado = formatPrecio(
+    casa.precio_por_noche,
+    casa.moneda_precio
+  );
+
   return (
-    <article className="group overflow-hidden rounded-2xl bg-white border border-stone-200/80 shadow-sm transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5">
-      {/* Image */}
-      <div className="relative overflow-hidden h-56">
+    <article className="group overflow-hidden rounded-2xl border border-stone-200/80 bg-white shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg">
+      <div className="relative h-56 overflow-hidden">
         {fotoPrincipal?.url ? (
           <img
             src={fotoPrincipal.url}
@@ -40,23 +55,21 @@ export default function CasaCard({ casa }: { casa: Casa }) {
             referrerPolicy="no-referrer"
           />
         ) : (
-          <div className="flex h-full items-center justify-center bg-stone-100 text-stone-400 text-sm">
+          <div className="flex h-full items-center justify-center bg-stone-100 text-sm text-stone-400">
             Sin imagen
           </div>
         )}
 
-        {/* Price badge */}
-        {casa.precio_por_noche && (
-          <div className="absolute bottom-3 left-3 rounded-full bg-white/95 backdrop-blur-sm px-3 py-1 text-sm font-semibold text-stone-900 shadow-sm">
-            ${casa.precio_por_noche.toLocaleString("es-AR")}
+        {precioFormateado && (
+          <div className="absolute bottom-3 left-3 rounded-full bg-white/95 px-3 py-1 text-sm font-semibold text-stone-900 shadow-sm backdrop-blur-sm">
+            {precioFormateado}
             <span className="text-xs font-normal text-stone-500"> / noche</span>
           </div>
         )}
       </div>
 
-      {/* Content */}
       <div className="p-5">
-        <h2 className="text-lg font-semibold text-stone-900 leading-snug">
+        <h2 className="text-lg leading-snug font-semibold text-stone-900">
           {casa.nombre}
         </h2>
 
@@ -64,7 +77,6 @@ export default function CasaCard({ casa }: { casa: Casa }) {
           {casa.descripcion ?? "Sin descripción disponible."}
         </p>
 
-        {/* Stats */}
         <div className="mt-4 flex flex-wrap gap-x-4 gap-y-1.5 text-sm text-stone-600">
           {casa.capacidad && (
             <span className="flex items-center gap-1">
@@ -74,6 +86,7 @@ export default function CasaCard({ casa }: { casa: Casa }) {
               {casa.capacidad} huéspedes
             </span>
           )}
+
           {casa.dormitorios && (
             <span className="flex items-center gap-1">
               <svg className="h-3.5 w-3.5 text-teal-600" viewBox="0 0 20 20" fill="currentColor">
@@ -82,10 +95,15 @@ export default function CasaCard({ casa }: { casa: Casa }) {
               {casa.dormitorios} dorm.
             </span>
           )}
+
           {casa.banos && (
             <span className="flex items-center gap-1">
               <svg className="h-3.5 w-3.5 text-teal-600" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M5 2a1 1 0 00-1 1v1H3a1 1 0 000 2h1v8a2 2 0 002 2h8a2 2 0 002-2V6h1a1 1 0 100-2h-1V3a1 1 0 00-1-1H5zm0 2h10v1H5V4zm0 3h10v7H5V7z" clipRule="evenodd" />
+                <path
+                  fillRule="evenodd"
+                  d="M5 2a1 1 0 00-1 1v1H3a1 1 0 000 2h1v8a2 2 0 002 2h8a2 2 0 002-2V6h1a1 1 0 100-2h-1V3a1 1 0 00-1-1H5zm0 2h10v1H5V4zm0 3h10v7H5V7z"
+                  clipRule="evenodd"
+                />
               </svg>
               {casa.banos} baños
             </span>
@@ -98,7 +116,11 @@ export default function CasaCard({ casa }: { casa: Casa }) {
         >
           Ver casa
           <svg className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
-            <path fillRule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clipRule="evenodd" />
+            <path
+              fillRule="evenodd"
+              d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z"
+              clipRule="evenodd"
+            />
           </svg>
         </Link>
       </div>
