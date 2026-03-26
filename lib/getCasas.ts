@@ -1,5 +1,4 @@
 import { supabase } from "./supabase";
-
 export async function getCasas() {
   const { data: casas, error: casasError } = await supabase
     .from("casas")
