@@ -17,11 +17,52 @@ function formatPrecio(
   return `$${precio.toLocaleString("es-AR")}`;
 }
 
-export default async function CasaPage({
-  params,
-}: {
+function calcularPromo(
+  precio: number | null,
+  promoActiva: boolean | null | undefined,
+  promoDescuento: number | null | undefined,
+  descuentoValor: number | null | undefined
+) {
+  if (precio == null) {
+    return {
+      original: null,
+      final: null,
+      tienePromo: false,
+      porcentaje: null,
+    };
+  }
+
+  const porcentaje =
+    promoActiva && promoDescuento != null && promoDescuento > 0
+      ? promoDescuento
+      : descuentoValor != null && descuentoValor > 0
+        ? descuentoValor
+        : null;
+
+  if (!porcentaje) {
+    return {
+      original: precio,
+      final: precio,
+      tienePromo: false,
+      porcentaje: null,
+    };
+  }
+
+  const final = Math.round(precio * (1 - porcentaje / 100));
+
+  return {
+    original: precio,
+    final,
+    tienePromo: true,
+    porcentaje,
+  };
+}
+
+type PageProps = {
   params: Promise<{ slug: string }>;
-}) {
+};
+
+export default async function CasaPage({ params }: PageProps) {
   const { slug } = await params;
 
   if (!slug) {
@@ -52,6 +93,23 @@ export default async function CasaPage({
     .eq("casa_id", casa.id)
     .order("orden", { ascending: true });
 
+  const precioPromo = calcularPromo(
+    casa.precio_por_noche,
+    casa.promo_activa,
+    casa.promo_descuento,
+    casa.descuento_valor
+  );
+
+  const precioOriginalFormateado = formatPrecio(
+    precioPromo.original,
+    casa.moneda_precio
+  );
+
+  const precioFinalFormateado = formatPrecio(
+    precioPromo.final,
+    casa.moneda_precio
+  );
+
   const whatsappMessage = encodeURIComponent(
     `Hola, quiero consultar por la casa ${casa.nombre} en Km314.`
   );
@@ -63,16 +121,14 @@ export default async function CasaPage({
     { label: "Camas", value: casa.camas, icon: "🛌" },
   ].filter((s) => s.value != null);
 
-  const precioFormateado = formatPrecio(
-    casa.precio_por_noche,
-    casa.moneda_precio
-  );
-
   const tieneCondiciones =
     casa.descuento_texto ||
     casa.descuento_valor != null ||
     casa.min_noches_baja != null ||
-    casa.min_noches_alta != null;
+    casa.min_noches_alta != null ||
+    casa.estadia_descuento != null ||
+    casa.estadia_min_noches != null ||
+    precioPromo.tienePromo;
 
   return (
     <main className="min-h-screen bg-white text-gray-800">
@@ -95,14 +151,32 @@ export default async function CasaPage({
               {casa.nombre}
             </h1>
 
-            {precioFormateado && (
-              <p className="mt-4 text-2xl font-semibold text-teal-700">
-                {precioFormateado}
-                <span className="text-base font-normal text-stone-500">
-                  {" "}
-                  / noche
-                </span>
-              </p>
+            {precioFinalFormateado && (
+              <div className="mt-4">
+                {precioPromo.tienePromo && precioOriginalFormateado && (
+                  <div className="mb-1 flex items-center gap-2">
+                    <span className="text-base text-stone-400 line-through">
+                      {precioOriginalFormateado}
+                    </span>
+                    <span className="rounded-full bg-red-50 px-2.5 py-1 text-xs font-semibold text-red-600">
+                      -{precioPromo.porcentaje}%
+                    </span>
+                  </div>
+                )}
+
+                <div className="flex items-end gap-2">
+                  <span className="text-2xl font-bold text-teal-700 sm:text-3xl">
+                    {precioFinalFormateado}
+                  </span>
+                  <span className="pb-1 text-sm text-stone-500">/ noche</span>
+                </div>
+
+                {precioPromo.tienePromo && (
+                  <div className="mt-2 inline-block rounded-full bg-teal-100 px-3 py-1 text-xs font-medium text-teal-700">
+                    Promo activa
+                  </div>
+                )}
+              </div>
             )}
 
             <p className="mt-5 text-base leading-8 text-stone-600">
@@ -150,6 +224,17 @@ export default async function CasaPage({
                 </h2>
 
                 <div className="mt-4 grid gap-3 text-sm text-stone-600">
+                  {precioPromo.tienePromo && (
+                    <div className="flex items-start gap-2">
+                      <span className="mt-0.5">🔥</span>
+                      <span>
+                        Promoción activa de{" "}
+                        <strong>{precioPromo.porcentaje}%</strong> sobre la tarifa
+                        por noche.
+                      </span>
+                    </div>
+                  )}
+
                   {casa.descuento_texto && (
                     <div className="flex items-start gap-2">
                       <span className="mt-0.5">🏷️</span>
@@ -157,12 +242,32 @@ export default async function CasaPage({
                     </div>
                   )}
 
-                  {!casa.descuento_texto && casa.descuento_valor != null && (
-                    <div className="flex items-start gap-2">
-                      <span className="mt-0.5">🏷️</span>
-                      <span>Descuento del {casa.descuento_valor}%</span>
-                    </div>
-                  )}
+                  {!casa.descuento_texto &&
+                    casa.descuento_valor != null &&
+                    casa.descuento_valor > 0 && (
+                      <div className="flex items-start gap-2">
+                        <span className="mt-0.5">🏷️</span>
+                        <span>Descuento del {casa.descuento_valor}%</span>
+                      </div>
+                    )}
+
+                  {casa.estadia_descuento != null &&
+                    casa.estadia_descuento > 0 &&
+                    casa.estadia_min_noches != null &&
+                    casa.estadia_min_noches > 0 && (
+                      <div className="flex items-start gap-2">
+                        <span className="mt-0.5">🌙</span>
+                        <span>
+                          <strong>{casa.estadia_descuento}% de descuento</strong>{" "}
+                          por estadías de{" "}
+                          <strong>
+                            {casa.estadia_min_noches}{" "}
+                            {casa.estadia_min_noches === 1 ? "noche" : "noches"}
+                          </strong>{" "}
+                          o más.
+                        </span>
+                      </div>
+                    )}
 
                   {casa.min_noches_baja != null && (
                     <div className="flex items-start gap-2">
