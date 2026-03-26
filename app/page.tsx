@@ -1,7 +1,7 @@
 import CasaCard from "@/components/CasaCard";
 import { getCasas } from "@/lib/getCasas";
 import Link from "next/link";
-
+export const dynamic = "force-dynamic";
 export const homeImages = {
   hero: "https://uqomdtridssuipbjdfnz.supabase.co/storage/v1/object/public/fotos/hero-principal.jpg",
   barrio: [
