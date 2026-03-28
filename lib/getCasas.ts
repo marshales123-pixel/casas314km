@@ -1,36 +1,21 @@
 import { supabase } from "./supabase";
+
 export async function getCasas() {
-  const { data: casas, error: casasError } = await supabase
+  const { data: casas, error } = await supabase
     .from("casas")
-    .select("*")
+    .select("*, fotos(*)")
     .eq("activa", true)
     .order("orden_home", { ascending: true })
-    .order("created_at", { ascending: false });
+    .order("created_at", { ascending: false })
+    .order("orden", { ascending: true, referencedTable: "fotos" });
 
-  if (casasError) {
-    console.log("Error al traer casas:", casasError);
+  if (error) {
+    console.error("Error al traer casas:", error);
     return [];
   }
 
-  const { data: fotos, error: fotosError } = await supabase
-    .from("fotos")
-    .select("*")
-    .order("orden", { ascending: true });
-
-  if (fotosError) {
-    console.log("Error al traer fotos:", fotosError);
-  }
-
-  const casasConFotos = (casas ?? []).map((casa) => {
-    const fotosDeCasa = (fotos ?? [])
-      .filter((foto) => foto.casa_id === casa.id)
-      .sort((a, b) => a.orden - b.orden);
-
-    return {
-      ...casa,
-      fotos: fotosDeCasa,
-    };
-  });
-
-  return casasConFotos;
-} 
+  return (casas ?? []).map((casa) => ({
+    ...casa,
+    fotos: (casa.fotos ?? []).sort((a: { orden: number }, b: { orden: number }) => a.orden - b.orden),
+  }));
+}

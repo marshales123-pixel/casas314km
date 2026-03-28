@@ -1,26 +1,9 @@
 import CasaCard from "@/components/CasaCard";
 import { getCasas } from "@/lib/getCasas";
+import { homeImages } from "@/lib/homeImages";
 import Link from "next/link";
-export const dynamic = "force-dynamic";
-export const homeImages = {
-  hero: "https://uqomdtridssuipbjdfnz.supabase.co/storage/v1/object/public/fotos/hero-principal.jpg",
-  barrio: [
-    "https://uqomdtridssuipbjdfnz.supabase.co/storage/v1/object/public/fotos/entrada.jpg",
-    "https://uqomdtridssuipbjdfnz.supabase.co/storage/v1/object/public/fotos/paisaje2.jpg",
-    "https://uqomdtridssuipbjdfnz.supabase.co/storage/v1/object/public/fotos/entorno-general-1.jpg",
-    "https://uqomdtridssuipbjdfnz.supabase.co/storage/v1/object/public/fotos/entorno-general-2.jpg",
-  ],
-  playa: [
-    "https://uqomdtridssuipbjdfnz.supabase.co/storage/v1/object/public/fotos/playa-dunas.jpg",
-    "https://uqomdtridssuipbjdfnz.supabase.co/storage/v1/object/public/fotos/playa-vista-aerea.jpg",
-  ],
-  amenities: [
-    "https://uqomdtridssuipbjdfnz.supabase.co/storage/v1/object/public/fotos/pileta-general.jpg",
-    "https://uqomdtridssuipbjdfnz.supabase.co/storage/v1/object/public/fotos/juegos-infantiles.jpg",
-    "https://uqomdtridssuipbjdfnz.supabase.co/storage/v1/object/public/fotos/cancha-futbol.jpg",
-    "https://uqomdtridssuipbjdfnz.supabase.co/storage/v1/object/public/fotos/club-house-atardecer.jpg",
-  ],
-};
+
+export const revalidate = 60;
 
 const amenitiesList = [
   { label: "Seguridad 24 hs", icon: "🛡️" },
