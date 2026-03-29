@@ -2,8 +2,91 @@
 
 html {
   scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 body {
   margin: 0;
+}
+
+@layer components {
+  /* ── Admin form utilities (dark theme) ── */
+  .label {
+    display: block;
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: #94a3b8; /* slate-400 */
+    margin-bottom: 0.25rem;
+    letter-spacing: 0.01em;
+  }
+
+  .input {
+    width: 100%;
+    border-radius: 0.5rem;
+    border: 1px solid #2A3352;
+    background-color: #0C0F1A;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+    color: #f1f5f9; /* slate-100 */
+    outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+
+  .input::placeholder {
+    color: #475569; /* slate-600 */
+  }
+
+  .input:focus {
+    border-color: #C9A84C;
+    box-shadow: 0 0 0 2px rgba(201, 168, 76, 0.15);
+  }
+
+  textarea.input {
+    resize: vertical;
+  }
+
+  .card {
+    border-radius: 0.75rem;
+    border: 1px solid #2A3352;
+    background-color: #141826;
+  }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    border-radius: 9999px;
+    padding: 0.125rem 0.625rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+  }
+
+  .btn-primary {
+    border-radius: 0.5rem;
+    background-color: #C9A84C;
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #1c1107;
+    transition: background-color 0.15s;
+  }
+
+  .btn-primary:hover {
+    background-color: #E4C06E;
+  }
+
+  .btn-secondary {
+    border-radius: 0.5rem;
+    border: 1px solid #2A3352;
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #cbd5e1;
+    transition: border-color 0.15s;
+  }
+
+  .btn-secondary:hover {
+    border-color: #364066;
+  }
 }

@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(wc -l /c/Users/gonza/OneDrive/Desktop/casas314km/components/*.tsx)"
+    ]
+  }
+}
