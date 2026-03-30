@@ -20,10 +20,10 @@ export function middleware(request: NextRequest) {
     const decoded = Buffer.from(base64, "base64").toString("utf-8");
     const [user, password] = decoded.split(":");
 
-    if (
-      user !=="admin" ||
-      password !== "123456"
-    ) {
+    const validUser = process.env.ADMIN_USER ?? "admin";
+    const validPassword = process.env.ADMIN_PASSWORD ?? "";
+
+    if (user !== validUser || password !== validPassword) {
       return new NextResponse("Unauthorized", { status: 401 });
     }
   }

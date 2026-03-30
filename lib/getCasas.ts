@@ -1,5 +1,7 @@
 import { supabase } from "./supabase";
-export async function getCasas() {
+import { unstable_cache } from "next/cache";
+
+async function fetchCasas() {
   const { data: casas, error: casasError } = await supabase
     .from("casas")
     .select("*")
@@ -33,4 +35,9 @@ export async function getCasas() {
   });
 
   return casasConFotos;
-} 
+}
+
+export const getCasas = unstable_cache(fetchCasas, ["casas"], {
+  tags: ["casas"],
+  revalidate: 3600,
+});

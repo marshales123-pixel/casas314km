@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Users, BedDouble, Bath, ArrowRight } from "lucide-react";
+import { formatPrecio, calcularPromo } from "@/lib/precios";
 
 type Foto = {
   id: string;
@@ -29,56 +30,6 @@ type Casa = {
   fotos?: Foto[];
 };
 
-function formatPrecio(precio?: number | null, moneda?: string | null) {
-  if (precio == null) return null;
-
-  if (moneda === "USD") {
-    return `USD ${precio.toLocaleString("en-US")}`;
-  }
-
-  return `$${precio.toLocaleString("es-AR")}`;
-}
-
-function calcularPromo(
-  precio?: number | null,
-  promoActiva?: boolean | null,
-  promoDescuento?: number | null,
-  descuentoValor?: number | null
-) {
-  if (precio == null) {
-    return {
-      original: null,
-      final: null,
-      tienePromo: false,
-      porcentaje: null,
-    };
-  }
-
-  const porcentaje =
-    promoActiva && promoDescuento != null && promoDescuento > 0
-      ? promoDescuento
-      : descuentoValor != null && descuentoValor > 0
-        ? descuentoValor
-        : null;
-
-  if (!porcentaje) {
-    return {
-      original: precio,
-      final: precio,
-      tienePromo: false,
-      porcentaje: null,
-    };
-  }
-
-  const final = Math.round(precio * (1 - porcentaje / 100));
-
-  return {
-    original: precio,
-    final,
-    tienePromo: true,
-    porcentaje,
-  };
-}
 
 export default function CasaCard({ casa }: { casa: Casa }) {
   const fotoPrincipal =

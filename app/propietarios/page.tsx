@@ -1,4 +1,5 @@
 import { Camera, ClipboardList, MessageCircle, Search } from "lucide-react";
+import { WA_URL } from "@/lib/constants";
 
 const beneficios = [
   {
@@ -79,7 +80,7 @@ export default function PropietariosPage() {
             Escribinos por WhatsApp y te contamos cómo empezar.
           </p>
           <a
-            href="https://wa.me/5491167330060?text=Hola,%20quiero%20publicar%20mi%20casa%20en%20Km314."
+            href={`${WA_URL}?text=Hola,%20quiero%20publicar%20mi%20casa%20en%20Km314.`}
             target="_blank"
             rel="noreferrer"
             className="mt-8 inline-flex items-center gap-2 rounded-full bg-teal-600 px-8 py-3.5 text-sm font-semibold text-white shadow-lg transition hover:bg-teal-500"

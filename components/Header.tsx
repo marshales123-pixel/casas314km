@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
+import { WA_URL } from "@/lib/constants";
 
 const navLinks = [
   { href: "/", label: "Inicio" },
@@ -43,7 +44,7 @@ export default function Header() {
             </Link>
           ))}
           <a
-            href="https://wa.me/5491167330060"
+            href="{WA_URL}"
             target="_blank"
             rel="noreferrer"
             className="flex items-center gap-2 rounded-full bg-teal-600 px-5 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-teal-700 hover:shadow-md"
@@ -84,7 +85,7 @@ export default function Header() {
             </Link>
           ))}
           <a
-            href="https://wa.me/5491167330060"
+            href="{WA_URL}"
             target="_blank"
             rel="noreferrer"
             className="mt-3 flex items-center justify-center gap-2 rounded-full bg-teal-600 px-5 py-2.5 text-sm font-medium text-white"

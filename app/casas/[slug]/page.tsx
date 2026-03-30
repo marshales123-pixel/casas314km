@@ -1,6 +1,8 @@
 import GaleriaCasa from "@/components/GaleriaCasa";
 import CalendarioDisponibilidad from "@/components/CalendarioDisponibilidad";
 import { supabase } from "@/lib/supabase";
+import { WA_URL } from "@/lib/constants";
+import { formatPrecio, calcularPromo } from "@/lib/precios";
 import {
   Users,
   BedDouble,
@@ -18,43 +20,29 @@ import {
 
 export const dynamic = "force-dynamic";
 
-function formatPrecio(
-  precio: number | null,
-  moneda: string | null | undefined
-) {
-  if (precio == null) return null;
-  if (moneda === "USD") return `USD ${precio.toLocaleString("en-US")}`;
-  return `$${precio.toLocaleString("es-AR")}`;
-}
-
-function calcularPromo(
-  precio: number | null,
-  promoActiva: boolean | null | undefined,
-  promoDescuento: number | null | undefined,
-  descuentoValor: number | null | undefined
-) {
-  if (precio == null) {
-    return { original: null, final: null, tienePromo: false, porcentaje: null };
-  }
-
-  const porcentaje =
-    promoActiva && promoDescuento != null && promoDescuento > 0
-      ? promoDescuento
-      : descuentoValor != null && descuentoValor > 0
-        ? descuentoValor
-        : null;
-
-  if (!porcentaje) {
-    return { original: precio, final: precio, tienePromo: false, porcentaje: null };
-  }
-
-  const final = Math.round(precio * (1 - porcentaje / 100));
-  return { original: precio, final, tienePromo: true, porcentaje };
-}
-
 type PageProps = {
   params: Promise<{ slug: string }>;
 };
+
+export async function generateMetadata({ params }: PageProps) {
+  const { slug } = await params;
+  const { data: casa } = await supabase
+    .from("casas")
+    .select("nombre, descripcion")
+    .eq("slug", slug)
+    .maybeSingle();
+
+  if (!casa) return { title: "Casa no encontrada | Km314" };
+
+  return {
+    title: `${casa.nombre} | Km314`,
+    description: casa.descripcion ?? `Alquiler en barrio privado Km314.`,
+    openGraph: {
+      title: `${casa.nombre} | Km314`,
+      description: casa.descripcion ?? `Alquiler en barrio privado Km314.`,
+    },
+  };
+}
 
 export default async function CasaPage({ params }: PageProps) {
   const { slug } = await params;
@@ -75,8 +63,16 @@ export default async function CasaPage({ params }: PageProps) {
 
   if (error || !casa) {
     return (
-      <div className="mx-auto max-w-6xl px-4 py-20 text-center text-stone-500">
-        {error ? "Ocurrió un error al cargar la casa." : "Casa no encontrada."}
+      <div className="mx-auto max-w-6xl px-4 py-20 text-center">
+        <p className="text-stone-500">
+          {error ? "Ocurrió un error al cargar la casa." : "Casa no encontrada."}
+        </p>
+        <a
+          href="/casas"
+          className="mt-4 inline-block text-sm text-teal-600 hover:underline"
+        >
+          ← Volver a casas
+        </a>
       </div>
     );
   }
@@ -299,7 +295,7 @@ export default async function CasaPage({ params }: PageProps) {
             {/* CTAs */}
             <div className="mt-10 flex flex-col gap-3 sm:flex-row">
               <a
-                href={`https://wa.me/5491167330060?text=${whatsappMessage}`}
+                href={`${WA_URL}?text=${whatsappMessage}`}
                 target="_blank"
                 rel="noreferrer"
                 className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-teal-600 px-6 py-3.5 text-sm font-semibold text-white shadow-sm transition hover:bg-teal-700"

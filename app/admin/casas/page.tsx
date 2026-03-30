@@ -220,11 +220,28 @@ export default function AdminCasasPage() {
       .filter(Boolean);
 
   const guardar = async () => {
-    if (!form.nombre.trim() || !form.slug.trim()) {
-      setMensaje({
-        tipo: "error",
-        texto: "Nombre y slug son obligatorios.",
-      });
+    if (!form.nombre.trim()) {
+      setMensaje({ tipo: "error", texto: "El nombre es obligatorio." });
+      return;
+    }
+    if (!form.slug.trim()) {
+      setMensaje({ tipo: "error", texto: "El slug es obligatorio." });
+      return;
+    }
+    if (!/^[a-z0-9-]+$/.test(form.slug.trim())) {
+      setMensaje({ tipo: "error", texto: "El slug solo puede tener letras minúsculas, números y guiones." });
+      return;
+    }
+    if (form.precio_por_noche != null && form.precio_por_noche < 0) {
+      setMensaje({ tipo: "error", texto: "El precio no puede ser negativo." });
+      return;
+    }
+    if (form.descuento_valor != null && (form.descuento_valor < 0 || form.descuento_valor > 100)) {
+      setMensaje({ tipo: "error", texto: "El descuento debe estar entre 0 y 100." });
+      return;
+    }
+    if (form.google_maps_url && form.google_maps_url.trim() && !/^https?:\/\//.test(form.google_maps_url.trim())) {
+      setMensaje({ tipo: "error", texto: "La URL de Google Maps debe empezar con https://." });
       return;
     }
 

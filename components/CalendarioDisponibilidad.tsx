@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
+import { WA_NUMBER } from "@/lib/constants";
 
 type Props = {
   casaId: string;
@@ -19,8 +20,6 @@ const MESES_GEN = [
 ];
 
 const DIAS = ["Lu", "Ma", "Mi", "Ju", "Vi", "Sá", "Do"];
-
-const WA_NUMBER = "5491167330060";
 
 function toISO(date: Date) {
   const y = date.getFullYear();

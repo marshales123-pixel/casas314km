@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { WA_URL, WA_DISPLAY } from "@/lib/constants";
 
 const WaIcon = () => (
   <svg className="h-4 w-4 text-teal-600 shrink-0" viewBox="0 0 24 24" fill="currentColor">
@@ -62,13 +63,13 @@ export default function Footer() {
                 Contacto
               </p>
               <a
-                href="https://wa.me/5491167330060"
+                href={WA_URL}
                 target="_blank"
                 rel="noreferrer"
                 className="inline-flex items-center gap-2 text-sm text-stone-600 hover:text-teal-700 transition-colors"
               >
                 <WaIcon />
-                +54 9 11 6733-0060
+                {WA_DISPLAY}
               </a>
               <p className="mt-3 text-xs text-stone-400 leading-5">
                 Atención personalizada para alquileres dentro del barrio.
