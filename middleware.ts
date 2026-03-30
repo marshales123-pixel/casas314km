@@ -21,8 +21,8 @@ export function middleware(request: NextRequest) {
     const [user, password] = decoded.split(":");
 
     if (
-      user !== process.env.ADMIN_USER ||
-      password !== process.env.ADMIN_PASSWORD
+      user !=="admin" ||
+      password !== "123456"
     ) {
       return new NextResponse("Unauthorized", { status: 401 });
     }

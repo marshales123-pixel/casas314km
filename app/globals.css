@@ -11,12 +11,12 @@ body {
 }
 
 @layer components {
-  /* ── Admin form utilities (dark theme) ── */
+  /* ── Admin form utilities ── */
   .label {
     display: block;
     font-size: 0.75rem;
     font-weight: 500;
-    color: #94a3b8; /* slate-400 */
+    color: #374151; /* gray-700 */
     margin-bottom: 0.25rem;
     letter-spacing: 0.01em;
   }
@@ -24,22 +24,22 @@ body {
   .input {
     width: 100%;
     border-radius: 0.5rem;
-    border: 1px solid #2A3352;
-    background-color: #0C0F1A;
+    border: 1px solid #e5e7eb; /* gray-200 */
+    background-color: #ffffff;
     padding: 0.5rem 0.75rem;
     font-size: 0.875rem;
-    color: #f1f5f9; /* slate-100 */
+    color: #111827; /* gray-900 */
     outline: none;
     transition: border-color 0.15s, box-shadow 0.15s;
   }
 
   .input::placeholder {
-    color: #475569; /* slate-600 */
+    color: #9ca3af; /* gray-400 */
   }
 
   .input:focus {
-    border-color: #C9A84C;
-    box-shadow: 0 0 0 2px rgba(201, 168, 76, 0.15);
+    border-color: #0d9488; /* teal-600 */
+    box-shadow: 0 0 0 2px rgba(13, 148, 136, 0.12);
   }
 
   textarea.input {
@@ -48,8 +48,8 @@ body {
 
   .card {
     border-radius: 0.75rem;
-    border: 1px solid #2A3352;
-    background-color: #141826;
+    border: 1px solid #e5e7eb;
+    background-color: #ffffff;
   }
 
   .badge {
@@ -64,29 +64,29 @@ body {
 
   .btn-primary {
     border-radius: 0.5rem;
-    background-color: #C9A84C;
+    background-color: #0d9488; /* teal-600 */
     padding: 0.5rem 1rem;
     font-size: 0.875rem;
     font-weight: 600;
-    color: #1c1107;
+    color: #ffffff;
     transition: background-color 0.15s;
   }
 
   .btn-primary:hover {
-    background-color: #E4C06E;
+    background-color: #0f766e; /* teal-700 */
   }
 
   .btn-secondary {
     border-radius: 0.5rem;
-    border: 1px solid #2A3352;
+    border: 1px solid #e5e7eb;
     padding: 0.5rem 1rem;
     font-size: 0.875rem;
     font-weight: 500;
-    color: #cbd5e1;
+    color: #374151;
     transition: border-color 0.15s;
   }
 
   .btn-secondary:hover {
-    border-color: #364066;
+    border-color: #d1d5db;
   }
 }

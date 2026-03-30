@@ -59,7 +59,7 @@ const valores = [
 
 export default async function Home() {
   const casas = await getCasas();
-  const casasDestacadas = casas.slice(0, 3);
+  const casasDestacadas = casas.filter((c) => c.destacada);
 
   return (
     <main className="bg-white text-gray-800">

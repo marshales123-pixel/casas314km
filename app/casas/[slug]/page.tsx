@@ -293,7 +293,7 @@ export default async function CasaPage({ params }: PageProps) {
             {/* Calendario */}
             <div className="mt-10">
               <h2 className="mb-4 text-base font-semibold text-stone-900">Disponibilidad</h2>
-              <CalendarioDisponibilidad casaId={casa.id} />
+              <CalendarioDisponibilidad casaId={casa.id} nombreCasa={casa.nombre} />
             </div>
 
             {/* CTAs */}

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import CalendarioAdmin from "@/components/CalendarioAdmin";
 
 type Foto = {
   id: string;
@@ -73,15 +74,15 @@ const emptyForm: FormData = {
 function Badge({ activa }: { activa: boolean }) {
   return (
     <span
-      className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium ${
+      className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium border ${
         activa
-          ? "border border-emerald-700 bg-emerald-950 text-emerald-400"
-          : "border border-[#2A3352] bg-[#0C0F1A] text-slate-500"
+          ? "border-teal-200 bg-teal-50 text-teal-700"
+          : "border-gray-200 bg-gray-100 text-gray-500"
       }`}
     >
       <span
         className={`h-1.5 w-1.5 rounded-full ${
-          activa ? "bg-emerald-400" : "bg-slate-600"
+          activa ? "bg-teal-500" : "bg-gray-400"
         }`}
       />
       {activa ? "Activa" : "Inactiva"}
@@ -103,6 +104,7 @@ export default function AdminCasasPage() {
   } | null>(null);
   const [subiendoFoto, setSubiendoFoto] = useState(false);
   const [dragActive, setDragActive] = useState(false);
+  const [tab, setTab] = useState<"datos" | "disponibilidad">("datos");
   const fileRef = useRef<HTMLInputElement>(null);
 
   const cargarCasas = async () => {
@@ -158,6 +160,7 @@ export default function AdminCasasPage() {
   const abrirEditar = (casa: Casa) => {
     setEditando(casa);
     setCreando(false);
+    setTab("datos");
 
     setForm({
       nombre: casa.nombre,
@@ -191,6 +194,7 @@ export default function AdminCasasPage() {
     setForm(emptyForm);
     setAmenitiesInput("");
     setMensaje(null);
+    setTab("datos");
   };
 
   const cerrar = () => {
@@ -596,23 +600,24 @@ export default function AdminCasasPage() {
   const panelAbierto = editando !== null || creando;
 
   return (
-    <div className="flex min-h-screen bg-[#0C0F1A]">
+    <div className="flex min-h-screen bg-gray-50">
+      {/* ── Lista de casas ── */}
       <div
-        className={`flex flex-col transition-all duration-300 ${
+        className={`flex flex-col bg-white border-r border-gray-200 transition-all duration-300 ${
           panelAbierto ? "w-full shrink-0 lg:w-80 xl:w-96" : "w-full"
         }`}
       >
-        <div className="sticky top-0 z-10 border-b border-[#2A3352] bg-[#141826] px-5 py-4">
+        <div className="sticky top-0 z-10 border-b border-gray-200 bg-white px-5 py-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-[10px] font-semibold uppercase tracking-widest text-[#C9A84C]">
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-teal-600">
                 Admin
               </p>
-              <h1 className="text-lg font-bold text-slate-100">Casas</h1>
+              <h1 className="text-lg font-bold text-gray-900">Casas</h1>
             </div>
             <button
               onClick={abrirCrear}
-              className="flex items-center gap-1.5 rounded-xl bg-[#C9A84C] px-4 py-2 text-sm font-semibold text-[#1c1107] transition hover:bg-[#E4C06E]"
+              className="flex items-center gap-1.5 rounded-lg bg-teal-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-teal-700"
             >
               <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
                 <path
@@ -628,21 +633,21 @@ export default function AdminCasasPage() {
 
         {cargando ? (
           <div className="flex flex-1 items-center justify-center py-20">
-            <div className="h-6 w-6 animate-spin rounded-full border-2 border-[#C9A84C] border-t-transparent" />
+            <div className="h-6 w-6 animate-spin rounded-full border-2 border-teal-600 border-t-transparent" />
           </div>
         ) : casas.length === 0 ? (
-          <div className="flex flex-1 flex-col items-center justify-center py-20 text-slate-500">
+          <div className="flex flex-1 flex-col items-center justify-center py-20 text-gray-400">
             <p className="text-4xl">🏠</p>
             <p className="mt-3 text-sm">No hay casas cargadas</p>
             <button
               onClick={abrirCrear}
-              className="mt-4 text-sm text-[#C9A84C] hover:underline"
+              className="mt-4 text-sm text-teal-600 hover:underline"
             >
               Crear la primera
             </button>
           </div>
         ) : (
-          <ul className="divide-y divide-[#2A3352] overflow-y-auto">
+          <ul className="divide-y divide-gray-100 overflow-y-auto">
             {casas.map((casa) => {
               const foto = casa.fotos?.find((f) => f.es_principal) ?? casa.fotos?.[0];
               const seleccionada = editando?.id === casa.id;
@@ -650,8 +655,8 @@ export default function AdminCasasPage() {
               return (
                 <li
                   key={casa.id}
-                  className={`flex cursor-pointer items-center gap-3 px-5 py-3.5 transition-colors hover:bg-[#141826] ${
-                    seleccionada ? "border-l-2 border-[#C9A84C] bg-[#141826]" : ""
+                  className={`flex cursor-pointer items-center gap-3 px-5 py-3.5 transition-colors hover:bg-gray-50 ${
+                    seleccionada ? "border-l-2 border-teal-600 bg-teal-50/50" : ""
                   }`}
                   onClick={() => abrirEditar(casa)}
                 >
@@ -659,23 +664,23 @@ export default function AdminCasasPage() {
                     <img
                       src={foto.url}
                       alt={casa.nombre}
-                      className="h-14 w-20 shrink-0 rounded-xl object-cover"
+                      className="h-14 w-20 shrink-0 rounded-lg object-cover"
                     />
                   ) : (
-                    <div className="flex h-14 w-20 shrink-0 items-center justify-center rounded-xl bg-[#2A3352] text-xs text-slate-500">
+                    <div className="flex h-14 w-20 shrink-0 items-center justify-center rounded-lg bg-gray-100 text-xs text-gray-400">
                       Sin foto
                     </div>
                   )}
 
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-semibold text-slate-100">
+                    <p className="truncate text-sm font-semibold text-gray-900">
                       {casa.nombre}
                     </p>
-                    <p className="mt-0.5 truncate text-xs text-slate-500">{casa.slug}</p>
+                    <p className="mt-0.5 truncate text-xs text-gray-400">{casa.slug}</p>
                     <div className="mt-1.5 flex items-center gap-2">
                       <Badge activa={casa.activa} />
                       {casa.fotos?.length ? (
-                        <span className="text-xs text-slate-500">
+                        <span className="text-xs text-gray-400">
                           {casa.fotos.length} foto{casa.fotos.length !== 1 ? "s" : ""}
                         </span>
                       ) : null}
@@ -683,7 +688,7 @@ export default function AdminCasasPage() {
                   </div>
 
                   <svg
-                    className="h-4 w-4 shrink-0 text-slate-600"
+                    className="h-4 w-4 shrink-0 text-gray-300"
                     viewBox="0 0 20 20"
                     fill="currentColor"
                   >
@@ -700,33 +705,66 @@ export default function AdminCasasPage() {
         )}
       </div>
 
+      {/* ── Panel de edición ── */}
       {panelAbierto && (
-        <div className="flex-1 overflow-y-auto border-l border-[#2A3352] bg-[#141826]">
-          <div className="sticky top-0 z-10 flex items-center justify-between border-b border-[#2A3352] bg-[#141826] px-6 py-4">
-            <h2 className="text-base font-semibold text-slate-100">
-              {creando ? "Nueva casa" : `Editando: ${editando?.nombre}`}
-            </h2>
-            <button
-              onClick={cerrar}
-              className="rounded-lg p-1.5 text-slate-500 transition hover:bg-[#2A3352] hover:text-slate-300"
-            >
-              <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                <path
-                  fillRule="evenodd"
-                  d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
-                  clipRule="evenodd"
-                />
-              </svg>
-            </button>
+        <div className="flex-1 overflow-y-auto bg-gray-50">
+          <div className="sticky top-0 z-10 border-b border-gray-200 bg-white">
+            <div className="flex items-center justify-between px-6 pt-4 pb-0">
+              <h2 className="text-base font-semibold text-gray-900">
+                {creando ? "Nueva casa" : editando?.nombre}
+              </h2>
+              <button
+                onClick={cerrar}
+                className="rounded-lg p-1.5 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600"
+              >
+                <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                  <path
+                    fillRule="evenodd"
+                    d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+              </button>
+            </div>
+            <div className="flex gap-1 px-6 pt-3">
+              <button
+                onClick={() => setTab("datos")}
+                className={`rounded-t-lg px-4 py-2 text-sm font-medium transition ${
+                  tab === "datos"
+                    ? "border-b-2 border-teal-600 text-teal-600"
+                    : "text-gray-400 hover:text-gray-600"
+                }`}
+              >
+                Datos
+              </button>
+              {editando && (
+                <button
+                  onClick={() => setTab("disponibilidad")}
+                  className={`rounded-t-lg px-4 py-2 text-sm font-medium transition ${
+                    tab === "disponibilidad"
+                      ? "border-b-2 border-teal-600 text-teal-600"
+                      : "text-gray-400 hover:text-gray-600"
+                  }`}
+                >
+                  Disponibilidad
+                </button>
+              )}
+            </div>
           </div>
 
-          <div className="max-w-2xl space-y-8 px-6 py-6">
+          {tab === "disponibilidad" && editando && (
+            <div className="px-6 py-6">
+              <CalendarioAdmin casaId={editando.id} nombreCasa={editando.nombre} />
+            </div>
+          )}
+
+          <div className={`max-w-2xl space-y-8 px-6 py-6 ${tab !== "datos" ? "hidden" : ""}`}>
             {mensaje && (
               <div
-                className={`rounded-xl border px-4 py-3 text-sm ${
+                className={`rounded-lg border px-4 py-3 text-sm ${
                   mensaje.tipo === "ok"
-                    ? "border-emerald-700 bg-emerald-950 text-emerald-300"
-                    : "border-red-700 bg-red-950 text-red-300"
+                    ? "border-teal-200 bg-teal-50 text-teal-800"
+                    : "border-red-200 bg-red-50 text-red-700"
                 }`}
               >
                 {mensaje.texto}
@@ -734,7 +772,7 @@ export default function AdminCasasPage() {
             )}
 
             <section>
-              <h3 className="mb-4 text-xs font-semibold uppercase tracking-widest text-slate-500">
+              <h3 className="mb-4 text-xs font-semibold uppercase tracking-widest text-gray-400">
                 Datos básicos
               </h3>
               <div className="grid gap-4">
@@ -757,8 +795,8 @@ export default function AdminCasasPage() {
                       onChange={(e) => set("slug", slugify(e.target.value))}
                       placeholder="casa-los-medanos"
                     />
-                    <p className="mt-1 text-xs text-slate-500">
-                      casas314.netlify.app/casas/<strong className="text-slate-400">{form.slug || "..."}</strong>
+                    <p className="mt-1 text-xs text-gray-400">
+                      casas314.netlify.app/casas/<strong className="text-gray-600">{form.slug || "..."}</strong>
                     </p>
                   </div>
 
@@ -796,7 +834,7 @@ export default function AdminCasasPage() {
             </section>
 
             <section>
-              <h3 className="mb-4 text-xs font-semibold uppercase tracking-widest text-slate-500">
+              <h3 className="mb-4 text-xs font-semibold uppercase tracking-widest text-gray-400">
                 Capacidad
               </h3>
               <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
@@ -823,7 +861,7 @@ export default function AdminCasasPage() {
             </section>
 
             <section>
-              <h3 className="mb-4 text-xs font-semibold uppercase tracking-widest text-slate-500">
+              <h3 className="mb-4 text-xs font-semibold uppercase tracking-widest text-gray-400">
                 Tarifas y condiciones
               </h3>
 
@@ -932,7 +970,7 @@ export default function AdminCasasPage() {
             </section>
 
             <section>
-              <h3 className="mb-4 text-xs font-semibold uppercase tracking-widest text-slate-500">
+              <h3 className="mb-4 text-xs font-semibold uppercase tracking-widest text-gray-400">
                 Comodidades
               </h3>
               <label className="label">Separadas por coma</label>
@@ -947,7 +985,7 @@ export default function AdminCasasPage() {
                   {parseAmenities(amenitiesInput).map((a) => (
                     <span
                       key={a}
-                      className="rounded-full border border-[#2A3352] bg-[#0C0F1A] px-3 py-1 text-xs text-slate-300"
+                      className="rounded-full border border-gray-200 bg-white px-3 py-1 text-xs text-gray-600"
                     >
                       {a}
                     </span>
@@ -957,18 +995,18 @@ export default function AdminCasasPage() {
             </section>
 
             <section>
-              <h3 className="mb-4 text-xs font-semibold uppercase tracking-widest text-slate-500">
+              <h3 className="mb-4 text-xs font-semibold uppercase tracking-widest text-gray-400">
                 Estado
               </h3>
               <div className="flex flex-wrap gap-4">
                 <label className="flex cursor-pointer items-center gap-2.5">
                   <input
                     type="checkbox"
-                    className="h-4 w-4 rounded border-[#2A3352] bg-[#0C0F1A] accent-[#C9A84C]"
+                    className="h-4 w-4 rounded border-gray-300 accent-teal-600"
                     checked={form.activa}
                     onChange={(e) => set("activa", e.target.checked)}
                   />
-                  <span className="text-sm text-slate-300">
+                  <span className="text-sm text-gray-700">
                     Casa activa (visible en el sitio)
                   </span>
                 </label>
@@ -976,11 +1014,11 @@ export default function AdminCasasPage() {
                 <label className="flex cursor-pointer items-center gap-2.5">
                   <input
                     type="checkbox"
-                    className="h-4 w-4 rounded border-[#2A3352] bg-[#0C0F1A] accent-[#C9A84C]"
+                    className="h-4 w-4 rounded border-gray-300 accent-teal-600"
                     checked={form.destacada}
                     onChange={(e) => set("destacada", e.target.checked)}
                   />
-                  <span className="text-sm text-slate-300">Destacada</span>
+                  <span className="text-sm text-gray-700">Destacada</span>
                 </label>
               </div>
             </section>
@@ -989,10 +1027,10 @@ export default function AdminCasasPage() {
               <button
                 onClick={guardar}
                 disabled={guardando}
-                className="flex items-center gap-2 rounded-xl bg-[#C9A84C] px-6 py-2.5 text-sm font-semibold text-[#1c1107] transition hover:bg-[#E4C06E] disabled:opacity-50"
+                className="flex items-center gap-2 rounded-lg bg-teal-600 px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-teal-700 disabled:opacity-50"
               >
                 {guardando ? (
-                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-[#1c1107] border-t-transparent" />
+                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
                 ) : (
                   <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
                     <path
@@ -1008,10 +1046,10 @@ export default function AdminCasasPage() {
               {editando && (
                 <button
                   onClick={() => toggleActiva(editando)}
-                  className={`rounded-xl border px-5 py-2.5 text-sm font-medium transition ${
+                  className={`rounded-lg border px-5 py-2.5 text-sm font-medium transition ${
                     editando.activa
-                      ? "border-[#2A3352] text-slate-400 hover:bg-[#2A3352]"
-                      : "border-emerald-700 text-emerald-400 hover:bg-emerald-950"
+                      ? "border-gray-200 text-gray-500 hover:bg-gray-100"
+                      : "border-teal-200 text-teal-700 hover:bg-teal-50"
                   }`}
                 >
                   {editando.activa ? "Desactivar" : "Activar"}
@@ -1022,7 +1060,7 @@ export default function AdminCasasPage() {
                 <button
                   onClick={borrarCasa}
                   disabled={guardando}
-                  className="rounded-xl border border-red-800 px-5 py-2.5 text-sm font-medium text-red-400 transition hover:bg-red-950 disabled:opacity-50"
+                  className="rounded-lg border border-red-200 px-5 py-2.5 text-sm font-medium text-red-600 transition hover:bg-red-50 disabled:opacity-50"
                 >
                   Borrar casa
                 </button>
@@ -1030,19 +1068,19 @@ export default function AdminCasasPage() {
             </div>
 
             {editando && (
-              <section className="border-t border-[#2A3352] pt-8">
+              <section className="border-t border-gray-200 pt-8">
                 <div className="mb-4 flex items-center justify-between">
-                  <h3 className="text-xs font-semibold uppercase tracking-widest text-slate-500">
+                  <h3 className="text-xs font-semibold uppercase tracking-widest text-gray-400">
                     Fotos
                   </h3>
 
                   <button
                     onClick={() => fileRef.current?.click()}
                     disabled={subiendoFoto}
-                    className="flex items-center gap-1.5 rounded-xl border border-[#2A3352] px-4 py-2 text-xs font-medium text-slate-300 transition hover:bg-[#2A3352] disabled:opacity-50"
+                    className="flex items-center gap-1.5 rounded-lg border border-gray-200 px-4 py-2 text-xs font-medium text-gray-600 transition hover:bg-gray-100 disabled:opacity-50"
                   >
                     {subiendoFoto ? (
-                      <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                      <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-gray-600 border-t-transparent" />
                     ) : (
                       <svg className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
                         <path
@@ -1083,10 +1121,10 @@ export default function AdminCasasPage() {
                       }
                     }}
                     onClick={() => fileRef.current?.click()}
-                    className={`flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed py-10 transition ${
+                    className={`flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed py-10 transition ${
                       dragActive
-                        ? "border-[#C9A84C] bg-[#C9A84C]/10 text-[#C9A84C]"
-                        : "border-[#2A3352] text-slate-500 hover:border-[#C9A84C]/50 hover:text-slate-300"
+                        ? "border-teal-400 bg-teal-50 text-teal-600"
+                        : "border-gray-200 text-gray-400 hover:border-teal-300 hover:text-gray-500"
                     }`}
                   >
                     <svg className="mb-2 h-8 w-8" viewBox="0 0 20 20" fill="currentColor">
@@ -1121,10 +1159,10 @@ export default function AdminCasasPage() {
                           subirArchivos(e.dataTransfer.files);
                         }
                       }}
-                      className={`mb-4 rounded-2xl border-2 border-dashed p-4 text-center text-sm transition ${
+                      className={`mb-4 rounded-xl border-2 border-dashed p-4 text-center text-sm transition ${
                         dragActive
-                          ? "border-[#C9A84C] bg-[#C9A84C]/10 text-[#C9A84C]"
-                          : "border-[#2A3352] text-slate-500"
+                          ? "border-teal-400 bg-teal-50 text-teal-600"
+                          : "border-gray-200 text-gray-400"
                       }`}
                     >
                       Arrastrá más fotos acá para agregarlas
@@ -1146,17 +1184,17 @@ export default function AdminCasasPage() {
                             />
 
                             {foto.es_principal && (
-                              <div className="absolute left-2 top-2 rounded-full bg-[#C9A84C] px-2 py-0.5 text-[10px] font-bold text-[#1c1107] shadow">
+                              <div className="absolute left-2 top-2 rounded-full bg-teal-600 px-2 py-0.5 text-[10px] font-bold text-white shadow">
                                 Principal
                               </div>
                             )}
 
-                            <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black/70 opacity-0 transition group-hover:opacity-100">
+                            <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black/60 opacity-0 transition group-hover:opacity-100">
                               <div className="flex gap-2">
                                 <button
                                   onClick={() => moverFoto(foto, "izq")}
                                   disabled={index === 0}
-                                  className="rounded-lg bg-white/15 px-2.5 py-1.5 text-xs text-white backdrop-blur-sm disabled:cursor-not-allowed disabled:opacity-30 hover:bg-white/25"
+                                  className="rounded-lg bg-white/20 px-2.5 py-1.5 text-xs text-white backdrop-blur-sm disabled:cursor-not-allowed disabled:opacity-30 hover:bg-white/30"
                                   title="Mover izquierda"
                                 >
                                   ←
@@ -1165,7 +1203,7 @@ export default function AdminCasasPage() {
                                 <button
                                   onClick={() => moverFoto(foto, "der")}
                                   disabled={index === arr.length - 1}
-                                  className="rounded-lg bg-white/15 px-2.5 py-1.5 text-xs text-white backdrop-blur-sm disabled:cursor-not-allowed disabled:opacity-30 hover:bg-white/25"
+                                  className="rounded-lg bg-white/20 px-2.5 py-1.5 text-xs text-white backdrop-blur-sm disabled:cursor-not-allowed disabled:opacity-30 hover:bg-white/30"
                                   title="Mover derecha"
                                 >
                                   →
@@ -1175,7 +1213,7 @@ export default function AdminCasasPage() {
                               {!foto.es_principal && (
                                 <button
                                   onClick={() => setPrincipal(foto)}
-                                  className="rounded-lg bg-[#C9A84C] px-2.5 py-1.5 text-[11px] font-bold text-[#1c1107] transition hover:bg-[#E4C06E]"
+                                  className="rounded-lg bg-teal-600 px-2.5 py-1.5 text-[11px] font-bold text-white transition hover:bg-teal-500"
                                   title="Marcar como principal"
                                 >
                                   Principal
@@ -1196,7 +1234,7 @@ export default function AdminCasasPage() {
                   </>
                 )}
 
-                <p className="mt-3 text-xs text-slate-600">
+                <p className="mt-3 text-xs text-gray-400">
                   Podés arrastrar varias fotos o hacer click para subirlas. La foto
                   principal es la que aparece en las cards y como imagen destacada.
                 </p>
@@ -1207,4 +1245,4 @@ export default function AdminCasasPage() {
       )}
     </div>
   );
-} 
+}
