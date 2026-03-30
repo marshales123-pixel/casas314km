@@ -1,4 +1,4 @@
-import CasaCard from "@/components/CasaCard";
+import FiltrosCasas from "@/components/FiltrosCasas";
 import { getCasas } from "@/lib/getCasas";
 
 export default async function CasasPage() {
@@ -19,7 +19,7 @@ export default async function CasasPage() {
         </div>
       </section>
 
-      {/* Grid */}
+      {/* Filtros + Grid */}
       <section className="mx-auto max-w-6xl px-4 py-14 sm:px-6 lg:px-8">
         {casas.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-24 text-center">
@@ -27,16 +27,7 @@ export default async function CasasPage() {
             <p className="mt-3 text-stone-500">No hay casas cargadas por el momento.</p>
           </div>
         ) : (
-          <>
-            <p className="mb-6 text-sm text-stone-400">
-              {casas.length} {casas.length === 1 ? "propiedad disponible" : "propiedades disponibles"}
-            </p>
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {casas.map((casa: any) => (
-                <CasaCard key={casa.id} casa={casa} />
-              ))}
-            </div>
-          </>
+          <FiltrosCasas casas={casas} />
         )}
       </section>
     </main>
